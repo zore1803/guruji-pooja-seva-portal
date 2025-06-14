@@ -80,20 +80,17 @@ export default function AuthPage() {
           address: role === "pandit" ? form.address : null
         }]);
 
-        // Send email ONLY for customers
-        if (role === "customer") {
-          // NOTE: No need to await. Don't block user on potential email delay.
-          fetch("https://oftrrhwbxmiwrtuzpzmu.supabase.co/functions/v1/send-registration-email", {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              email: form.email,
-              name: form.name || "", // fallback to blank
-            }),
-          });
-        }
+        // Send welcome email for both roles
+        fetch("https://oftrrhwbxmiwrtuzpzmu.supabase.co/functions/v1/send-registration-email", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            email: form.email,
+            name: form.name || "",
+          }),
+        });
 
         toast({ title: "Registration successful", description: "Check your email for confirmation." });
         navigate(role === "pandit" ? "/dashboard-pandit" : "/dashboard-customer");
