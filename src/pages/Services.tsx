@@ -1,3 +1,4 @@
+
 import { Link } from "react-router-dom";
 import Footer from "@/components/Footer";
 
@@ -205,18 +206,19 @@ export default function ServicesPage() {
         <h2 className="font-playfair text-4xl font-semibold mb-10 text-center text-orange-700">Services</h2>
         <div className="grid grid-cols-1 xsm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-7">
           {services.map((s) => (
-            <div key={s.title} className="service-card bg-white rounded-lg shadow hover:shadow-xl transition-all flex flex-col p-3">
-              {s.link ? (
-                <Link to={s.link}><img src={s.img} alt={s.title} className="w-full h-44 object-cover rounded" /></Link>
-              ) : (
-                <img src={s.img} alt={s.title} className="w-full h-44 object-cover rounded" />
-              )}
+            <Link
+              key={s.title}
+              to={s.link}
+              className="service-card bg-white rounded-lg shadow hover:shadow-xl transition-all flex flex-col p-3 cursor-pointer group h-full"
+              style={{ textDecoration: "none" }}
+            >
+              <img src={s.img} alt={s.title} className="w-full h-44 object-cover rounded group-hover:opacity-85" />
               <div className="service-info flex flex-col flex-1 py-3 px-1">
                 <h3 className="font-bold text-xs text-gray-500 mb-1">{s.category}</h3>
-                <h2 className="text-lg font-semibold mb-1">{s.title}</h2>
-                <p className="text-orange-700 font-bold">{s.price}</p>
+                <h2 className="text-lg font-semibold mb-1 group-hover:text-orange-700 transition">{s.title}</h2>
+                <p className="text-orange-700 font-bold group-hover:underline">{s.price}</p>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       </section>
@@ -225,3 +227,4 @@ export default function ServicesPage() {
     </div>
   );
 }
+
