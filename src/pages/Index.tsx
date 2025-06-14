@@ -1,14 +1,16 @@
-
 // Eguruji1803 Landing Page
 import { Link } from "react-router-dom";
 
 const Index = () => (
   <div className="bg-orange-50 min-h-screen">
     <section className="max-w-4xl mx-auto py-16 px-5 flex flex-col items-center text-center gap-8">
-      <img src="https://images.unsplash.com/photo-1500673922987-e212871fec22?auto=format&fit=crop&w=600&q=80"
-        alt="Eguruji1803" className="rounded-lg mb-4 shadow-lg w-full max-w-[360px] mx-auto" />
+      <img
+        src="/lovable-uploads/be6198c7-494f-4214-907a-fd1da0249e44.png"
+        alt="E-GURUJI Logo"
+        className="rounded-lg mb-4 shadow-lg w-full max-w-[360px] mx-auto bg-white p-4"
+      />
       <h1 className="text-4xl md:text-5xl font-bold text-orange-700 font-playfair">
-        Eguruji1803: Your Trusted Online Pandit Booking Portal
+        E-GURUJI: Your Trusted Online Pandit Booking Portal
       </h1>
       <p className="text-lg text-gray-700 max-w-2xl mx-auto leading-relaxed">
         Book Vedic Pandits online for pujas, kathas, sanskaars, and astrological consultations. 100% verified Guruji, Personalized Services, Secure Payment, Transparent Pricing.<br />

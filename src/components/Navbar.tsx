@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { useSession } from "@/hooks/useSession";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -12,7 +11,7 @@ const Navbar = () => {
     <nav className="w-full bg-white shadow px-4 py-2 flex items-center justify-between sticky top-0 z-30">
       <div className="flex items-center gap-2">
         <span className="text-2xl font-bold text-orange-600 font-playfair tracking-wide">
-          Eguruji1803
+          E-GURUJI
         </span>
         <Link to="/" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">Home</Link>
         <Link to="/services" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">Services</Link>
