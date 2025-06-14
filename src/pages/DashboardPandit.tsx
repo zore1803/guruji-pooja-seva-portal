@@ -1,4 +1,3 @@
-
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Check, X, LogOut, Edit } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import EditPanditProfileModal from "@/components/EditPanditProfileModal";
+import PanditCompletedPoojasTable from "@/components/PanditCompletedPoojasTable";
 
 type Profile = {
   id: string;
@@ -262,6 +262,8 @@ export default function DashboardPandit() {
             )}
           </>
         )}
+        <PanditCompletedPoojasTable panditId={user.id} />
+
         <EditPanditProfileModal
           open={openEditModal}
           onClose={() => setOpenEditModal(false)}
