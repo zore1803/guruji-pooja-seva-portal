@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -19,6 +18,7 @@ import { toast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton";
 
 type CredentialsFormValues = {
   fromDate: Date | null;
@@ -132,8 +132,36 @@ export default function CredentialsPage() {
     <div className="min-h-screen bg-[#f8ede8] flex flex-col items-center justify-start py-10 px-2">
       <div className="bg-white max-w-xl w-full rounded-xl shadow p-8">
         <h1 className="text-2xl font-extrabold mb-6 text-orange-700 text-center">Select Dates &amp; Location</h1>
+        {/* Show User UUID for reference (with copy) */}
+        {user && (
+          <div className="flex items-center gap-1 mb-5 justify-end">
+            <span className="text-[11px] text-gray-400 font-mono select-all">User UUID: {user.id}</span>
+            <CopyToClipboardButton value={user.id} />
+          </div>
+        )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
+            {/* User UUID readonly field, required */}
+            {user && (
+              <div>
+                <label className="block text-xs text-muted-foreground font-mono mb-1" htmlFor="user-uuid">
+                  Your User UUID <span className="text-red-500">*</span>
+                </label>
+                <div className="flex gap-1">
+                  <input
+                    id="user-uuid"
+                    className="bg-gray-100 border border-gray-300 px-3 py-1 rounded text-xs w-full font-mono"
+                    value={user.id}
+                    readOnly
+                    required
+                  />
+                  <CopyToClipboardButton value={user.id} />
+                </div>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Required for correct booking submission
+                </p>
+              </div>
+            )}
             <div className="flex flex-col md:flex-row gap-6">
               <FormField
                 control={form.control}

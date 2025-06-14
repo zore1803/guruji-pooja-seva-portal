@@ -1,4 +1,3 @@
-
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -9,6 +8,7 @@ import EditCustomerProfileModal from "@/components/EditCustomerProfileModal";
 import { LogOut, Edit } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
 import { format } from "date-fns";
+import CopyToClipboardButton from "@/components/CopyToClipboardButton";
 
 // Define booking display type
 type Booking = {
@@ -78,6 +78,11 @@ export default function DashboardCustomer() {
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Customer</span>
+        {/* UUID display with copy button */}
+        <div className="flex items-center gap-1 mt-2">
+          <span className="text-[11px] text-gray-400 font-mono select-all">UUID: {profile.id}</span>
+          <CopyToClipboardButton value={profile.id} />
+        </div>
         <div className="mt-4 flex w-full flex-col gap-2">
           <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
             <Edit className="w-4 h-4" /> Edit Profile
