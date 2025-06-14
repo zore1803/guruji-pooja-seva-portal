@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
+import { useSession } from "@/hooks/useSession";
 
 type Role = "pandit" | "customer";
 const PANDIT_EXTRA_FIELDS = [
@@ -24,6 +25,17 @@ export default function AuthPage() {
   });
   const [profilePreview, setProfilePreview] = useState<string | null>(null);
   const navigate = useNavigate();
+  const { user } = useSession();
+
+  // --- REDIRECT after Login if already authenticated
+  useEffect(() => {
+    if (user) {
+      // Infer role from metadata if available (supabase stores in user_metadata)
+      const userType = user.user_metadata?.user_type || role;
+      if (userType === "pandit") navigate("/dashboard-pandit", { replace: true });
+      else navigate("/dashboard-customer", { replace: true });
+    }
+  }, [user, navigate, role]);
 
   const swapMode = () => setIsLogin((v) => !v);
 
@@ -44,7 +56,8 @@ export default function AuthPage() {
       const { error } = await supabase.auth.signInWithPassword({ email: form.email, password: form.password });
       setLoading(false);
       if (error) toast({ title: "Login failed", description: error.message });
-      else toast({ title: "Logged in!" }); // Session will redirect via useSession
+      else toast({ title: "Logged in!" });
+      // navigation will be handled by useEffect with user/session
     } else {
       try {
         let profile_image_url = "";
@@ -126,7 +139,7 @@ export default function AuthPage() {
         });
 
         toast({ title: "Registration successful", description: "Check your email for confirmation." });
-        navigate(role === "pandit" ? "/dashboard-pandit" : "/dashboard-customer");
+        // navigation will be handled by useEffect with user/session
       } catch (err: any) {
         toast({ title: "Signup failed", description: err.message || String(err) });
       } finally {
@@ -176,4 +189,3 @@ export default function AuthPage() {
     </div>
   );
 }
-
