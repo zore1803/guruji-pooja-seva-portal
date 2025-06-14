@@ -37,7 +37,11 @@ export default function PoojaDetailPage() {
               <div className="mt-1 text-sm text-gray-800">{pooja.details}</div>
             </div>
           )}
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-base font-medium rounded" size="lg">
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 text-base font-medium rounded"
+            size="lg"
+            onClick={() => navigate(`/credentials/${pooja.id}`)}
+          >
             Select Dates/Timings
           </Button>
         </div>
