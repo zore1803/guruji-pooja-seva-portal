@@ -19,6 +19,7 @@ import { Calendar as CalendarIcon } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import CopyToClipboardButton from "@/components/CopyToClipboardButton";
+import { useCustomerProfile } from "@/hooks/useCustomerProfile";
 
 type CredentialsFormValues = {
   fromDate: Date | null;
@@ -38,12 +39,11 @@ export default function CredentialsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { user } = useSession();
-
+  const { profile, loading: loadingProfile } = useCustomerProfile();
   const form = useForm<CredentialsFormValues>({
     defaultValues,
     mode: "onTouched",
   });
-
   const [loading, setLoading] = React.useState(false);
 
   const onSubmit = async (data: CredentialsFormValues) => {
@@ -84,7 +84,7 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Strictly pass the current session user id as UUID for customer_id
+    // Strictly use the current session user's UUID for customer_id
     const { error } = await supabase.from("bookings").insert([
       {
         service_id: Number(id),
@@ -109,10 +109,18 @@ export default function CredentialsPage() {
       title: "Credentials Submitted",
       description: (
         <div className="text-left">
-          <div><b>From:</b> {data.fromDate ? format(data.fromDate, "PPP") : "--"}</div>
-          <div><b>To:</b> {data.toDate ? format(data.toDate, "PPP") : "--"}</div>
-          <div><b>Location:</b> {data.location}</div>
-          <div><b>Address:</b> {data.address}</div>
+          <div>
+            <b>From:</b> {data.fromDate ? format(data.fromDate, "PPP") : "--"}
+          </div>
+          <div>
+            <b>To:</b> {data.toDate ? format(data.toDate, "PPP") : "--"}
+          </div>
+          <div>
+            <b>Location:</b> {data.location}
+          </div>
+          <div>
+            <b>Address:</b> {data.address}
+          </div>
         </div>
       ),
     });
@@ -125,16 +133,19 @@ export default function CredentialsPage() {
     <div className="min-h-screen bg-[#f8ede8] flex flex-col items-center justify-start py-10 px-2">
       <div className="bg-white max-w-xl w-full rounded-xl shadow p-8">
         <h1 className="text-2xl font-extrabold mb-6 text-orange-700 text-center">Select Dates &amp; Location</h1>
-        {/* Show User UUID for reference (with copy) */}
-        {user && (
-          <div className="flex items-center gap-1 mb-5 justify-end">
-            <span className="text-[11px] text-gray-400 font-mono select-all">User UUID: {user.id}</span>
-            <CopyToClipboardButton value={user.id} />
+        {/* Show basic profile info for reference */}
+        {profile && (
+          <div className="flex flex-col md:flex-row gap-2 mb-4 items-center justify-end">
+            <span className="text-xs text-gray-600 font-semibold">{profile.name}</span>
+            <span className="text-[11px] text-gray-400 font-mono select-all">
+              User UUID: {profile.id}
+            </span>
+            <CopyToClipboardButton value={profile.id} />
           </div>
         )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
-            {/* REMOVE the input field for user UUID from the form */}
+            {/* No user UUID field/input, just dates/fields */}
             <div className="flex flex-col md:flex-row gap-6">
               <FormField
                 control={form.control}
