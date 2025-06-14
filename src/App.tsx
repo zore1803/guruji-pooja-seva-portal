@@ -12,6 +12,7 @@ import DashboardCustomer from "./pages/DashboardCustomer";
 import ServicesPage from "./pages/Services";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
+import PoojaDetailPage from "./pages/PoojaDetailPage";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Route path="/dashboard-pandit" element={<DashboardPandit />} />
           <Route path="/dashboard-customer" element={<DashboardCustomer />} />
           <Route path="/services" element={<ServicesPage />} />
+          <Route path="/product/:id" element={<PoojaDetailPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
