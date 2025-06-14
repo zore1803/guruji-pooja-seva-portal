@@ -14,6 +14,7 @@ const serviceImages = [
   "/lovable-uploads/5d3e5a15-cb00-4549-9a4d-3efc26b032cd.png", // 10
 ];
 
+// Map your uploaded images to the correct services (11-20) below:
 const services = [
   {
     id: 1,
@@ -93,70 +94,70 @@ const services = [
     id: 11,
     title: "Ganpati Visarjan Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png",
+    img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png", // Ganpati Visarjan (matches name with "Ganesh Havan", but using as Visarjan per standard practice)
     price: "₹00.00",
   },
   {
     id: 12,
     title: "Janmashtami Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/251e248a-4351-49bd-8651-6aeefdaee648.png",
+    img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png", // Janmashtami (based on unique upload, if recognizable)
     price: "₹00.00",
   },
   {
     id: 13,
     title: "Diwali Lakshmi Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png",
+    img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png", // Diwali/Lakshmi Ma
     price: "₹00.00",
   },
   {
     id: 14,
     title: "Ganapti Sthapana Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png",
+    img: "/lovable-uploads/3a7d649e-67b9-4c49-9866-d9cb4f95f0aa.png", // Ganpati Sthapana
     price: "₹00.00",
   },
   {
     id: 15,
     title: "Udak Shanti",
     category: "SHANTI",
-    img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png",
+    img: "/lovable-uploads/251e248a-4351-49bd-8651-6aeefdaee648.png", // Udak Shanti
     price: "₹00.00",
   },
   {
     id: 16,
     title: "Navgraha Shanti",
     category: "SHANTI",
-    img: "/lovable-uploads/3a7d649e-67b9-4c49-9866-d9cb4f95f0aa.png",
+    img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png", // Navgraha Shanti (no more logo here)
     price: "₹00.00",
   },
   {
     id: 17,
     title: "Ganapti Havan",
     category: "HAVAN",
-    img: "/lovable-uploads/1a779d2d-ca9c-4348-a5b7-1745de1e05fa.png",
+    img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png", // Ganapti Havan (dedicated, matches 'GAN H' mapping)
     price: "₹00.00",
   },
   {
     id: 18,
     title: "Dhan Laxmi Pooja",
     category: "HAVAN",
-    img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png",
+    img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png", // Dhan Laxmi (Lakshmi Ma)
     price: "₹00.00",
   },
   {
     id: 19,
     title: "Ganesh Havan",
     category: "HAVAN",
-    img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png",
+    img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png", // Ganesh Havan separate from Visarjan
     price: "₹00.00",
   },
   {
     id: 20,
     title: "Satyanarayan Havan",
     category: "HAVAN",
-    img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png",
+    img: "/lovable-uploads/1a779d2d-ca9c-4348-a5b7-1745de1e05fa.png", // Satyanarayan
     price: "₹00.00",
   },
 ];
