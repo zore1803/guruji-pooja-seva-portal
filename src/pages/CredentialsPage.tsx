@@ -55,10 +55,10 @@ export default function CredentialsPage() {
       return;
     }
 
-    if (!id) {
+    if (!id || isNaN(Number(id))) {
       toast({
         title: "Invalid Service",
-        description: "No service ID found.",
+        description: "No valid service ID found.",
       });
       return;
     }
@@ -72,16 +72,29 @@ export default function CredentialsPage() {
     }
 
     setLoading(true);
-    // Insert booking to Supabase
+
+    // Before insert: Check if the service exists!
+    const { data: existingService, error: serviceError } = await supabase
+      .from("services")
+      .select("id")
+      .eq("id", Number(id))
+      .single();
+
+    if (serviceError || !existingService) {
+      setLoading(false);
+      toast({
+        title: "Service Not Found",
+        description: "The selected service does not exist.",
+      });
+      return;
+    }
+
     const { error } = await supabase.from("bookings").insert([
       {
         service_id: Number(id),
         customer_id: user.id,
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
-        // Store address info in invoice_url as temp (if required, or just leave)
         status: "pending",
-        // Not inserting confirmed_date, pandit_id yet
-        // Optionally, can extend table to store location/address separately. For now, add to invoice_url.
         invoice_url: JSON.stringify({
           location: data.location,
           address: data.address,
