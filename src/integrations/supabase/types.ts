@@ -9,7 +9,160 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      bookings: {
+        Row: {
+          confirmed_date: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          invoice_url: string | null
+          pandit_id: string | null
+          service_id: number | null
+          status: string | null
+          tentative_date: string | null
+          updated_at: string
+        }
+        Insert: {
+          confirmed_date?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_url?: string | null
+          pandit_id?: string | null
+          service_id?: number | null
+          status?: string | null
+          tentative_date?: string | null
+          updated_at?: string
+        }
+        Update: {
+          confirmed_date?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          invoice_url?: string | null
+          pandit_id?: string | null
+          service_id?: number | null
+          status?: string | null
+          tentative_date?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bookings_service_id_fkey"
+            columns: ["service_id"]
+            isOneToOne: false
+            referencedRelation: "services"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payments: {
+        Row: {
+          amount: number | null
+          booking_id: string | null
+          created_at: string
+          customer_id: string | null
+          id: string
+          method: string | null
+          status: string | null
+          transaction_id: string | null
+        }
+        Insert: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Update: {
+          amount?: number | null
+          booking_id?: string | null
+          created_at?: string
+          customer_id?: string | null
+          id?: string
+          method?: string | null
+          status?: string | null
+          transaction_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payments_booking_id_fkey"
+            columns: ["booking_id"]
+            isOneToOne: false
+            referencedRelation: "bookings"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          aadhar_number: string | null
+          address: string | null
+          created_at: string
+          email: string
+          expertise: string | null
+          id: string
+          is_verified: boolean | null
+          name: string
+          profile_image_url: string | null
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Insert: {
+          aadhar_number?: string | null
+          address?: string | null
+          created_at?: string
+          email: string
+          expertise?: string | null
+          id: string
+          is_verified?: boolean | null
+          name: string
+          profile_image_url?: string | null
+          user_type: Database["public"]["Enums"]["user_type"]
+        }
+        Update: {
+          aadhar_number?: string | null
+          address?: string | null
+          created_at?: string
+          email?: string
+          expertise?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name?: string
+          profile_image_url?: string | null
+          user_type?: Database["public"]["Enums"]["user_type"]
+        }
+        Relationships: []
+      }
+      services: {
+        Row: {
+          created_at: string
+          description: string
+          id: number
+          image: string | null
+          name: string
+          price: number
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          id?: number
+          image?: string | null
+          name: string
+          price: number
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          id?: number
+          image?: string | null
+          name?: string
+          price?: number
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -18,7 +171,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_type: "pandit" | "customer"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -133,6 +286,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      user_type: ["pandit", "customer"],
+    },
   },
 } as const
