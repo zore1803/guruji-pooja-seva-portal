@@ -1,13 +1,25 @@
-
 import { Link } from "react-router-dom";
 
-// Add all your service cards here as constant data
+// New local image paths for the first 10 services
+const serviceImages = [
+  "/lovable-uploads/dc4a5c8a-3832-4bfc-860c-e235b8c225b7.png", // 1
+  "/lovable-uploads/2263f060-33f7-4944-b853-5a140ec68e36.png", // 2
+  "/lovable-uploads/2ee87fe5-d7a5-4aec-8867-4fb74c778dc2.png", // 3
+  "/lovable-uploads/c1a5b2a3-ee18-40e5-8581-c3c52d85a9b9.png", // 4
+  "/lovable-uploads/b9a8b749-7987-4c52-ba97-a3805e555da7.png", // 5
+  "/lovable-uploads/65e174e3-c7e8-4606-a7a6-2b458a910f4c.png", // 6
+  "/lovable-uploads/d8c3c874-61f6-4372-b601-3ebe4c4580c0.png", // 7
+  "/lovable-uploads/62f5c343-495a-4a65-bd20-2fc1c99fb626.png", // 8
+  "/lovable-uploads/695814da-ae02-443d-8ab9-80dfa76c9755.png", // 9
+  "/lovable-uploads/5d3e5a15-cb00-4549-9a4d-3efc26b032cd.png", // 10
+];
+
 const services = [
   {
     id: 1,
     title: "Vaastu Shanti",
     category: "REGULAR",
-    img: "/pic/20220418105201.png",
+    img: serviceImages[0],
     price: "₹00.00",
     link: "/product/1",
   },
@@ -15,7 +27,7 @@ const services = [
     id: 2,
     title: "Griha Pravesh",
     category: "REGULAR",
-    img: "/pic/GRIHA.png",
+    img: serviceImages[1],
     price: "₹00.00",
     link: "/product/2",
   },
@@ -23,7 +35,7 @@ const services = [
     id: 3,
     title: "Bhoomi Pooja",
     category: "REGULAR",
-    img: "/pic/BHOOMI.jpg",
+    img: serviceImages[2],
     price: "₹00.00",
     link: "/product/3",
   },
@@ -31,7 +43,7 @@ const services = [
     id: 4,
     title: "Satya Narayan",
     category: "REGULAR",
-    img: "/pic/SATYA.jpg",
+    img: serviceImages[3],
     price: "₹00.00",
     link: "/product/4",
   },
@@ -39,42 +51,42 @@ const services = [
     id: 5,
     title: "Durja Pooja",
     category: "REGULAR",
-    img: "/pic/DURGA.jpg",
+    img: serviceImages[4],
     price: "₹00.00",
   },
   {
     id: 6,
     title: "Office Opening Pooja",
     category: "REGULAR",
-    img: "/pic/OFF OPEN.jpg",
+    img: serviceImages[5],
     price: "₹00.00",
   },
   {
     id: 7,
     title: "Mahalakshmi Pooja",
     category: "REGULAR",
-    img: "/pic/MAHALAKSHI.jpg",
+    img: serviceImages[6],
     price: "₹00.00",
   },
   {
     id: 8,
     title: "Ganpati Pooja",
     category: "REGULAR",
-    img: "/pic/GANESH.jpg",
+    img: serviceImages[7],
     price: "₹00.00",
   },
   {
     id: 9,
     title: "Rudra Abhishek",
     category: "REGULAR",
-    img: "/pic/RUDRA.jpeg",
+    img: serviceImages[8],
     price: "₹00.00",
   },
   {
     id: 10,
     title: "Mangalagaur Pooja",
     category: "REGULAR",
-    img: "/pic/MANGALAKAUR.jpeg",
+    img: serviceImages[9],
     price: "₹00.00",
   },
   {
@@ -149,6 +161,9 @@ const services = [
   },
 ];
 
+// Use the Book A Pandit image as the logo
+const logoSrc = "/lovable-uploads/5d3e5a15-cb00-4549-9a4d-3efc26b032cd.png";
+
 export default function ServicesPage() {
   return (
     <div className="bg-white min-h-screen w-full">
@@ -156,7 +171,7 @@ export default function ServicesPage() {
       <header className="w-full shadow bg-white sticky top-0 z-20">
         <div className="container mx-auto px-4 flex items-center justify-between py-3">
           <Link to="/" className="flex items-center gap-2">
-            <img src="/logoo.png" className="h-9 w-9 object-contain" alt="Logo" />
+            <img src={logoSrc} className="h-10 w-10 object-contain rounded-full bg-white border" alt="Logo" />
             <span className="text-2xl font-playfair font-bold tracking-tight text-orange-600">E-GURUJI</span>
           </Link>
           <nav className="hidden md:flex gap-6 font-medium text-gray-700">
