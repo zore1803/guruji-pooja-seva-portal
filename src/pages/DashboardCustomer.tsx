@@ -93,8 +93,10 @@ export default function DashboardCustomer() {
         </div>
       </div>
       <div className="flex-1 w-full">
-        <div className="flex items-center justify-between mb-2">
-          <h1 className="text-2xl font-bold">Customer Dashboard</h1>
+        <h1 className="text-2xl font-bold mb-2">Customer Dashboard</h1>
+        <p>Browse and book pooja services below, or manage your upcoming bookings.</p>
+        {/* Book Now Button above Pending Bookings */}
+        <div className="flex justify-end my-4">
           <Button
             variant="default"
             onClick={() => navigate("/services")}
@@ -103,7 +105,6 @@ export default function DashboardCustomer() {
             Book Now
           </Button>
         </div>
-        <p>Browse and book pooja services below, or manage your upcoming bookings.</p>
         {/* Pending Bookings List */}
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-2">Pending Bookings</h2>
