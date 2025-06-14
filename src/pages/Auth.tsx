@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -55,7 +56,7 @@ export default function AuthPage() {
         }
         // Signup
         const redirectUrl = window.location.origin + "/";
-        const { data: signUpData, error } = await supabase.auth.signUp({
+        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
           email: form.email,
           password: form.password,
           options: {
@@ -63,13 +64,41 @@ export default function AuthPage() {
             data: { name: form.name, profile_image_url, user_type: role }
           }
         });
-        if (error) throw error;
+        if (signUpError) throw signUpError;
         const userId = signUpData?.user?.id;
         if (!userId) throw new Error("Sign up succeeded, but user id missing!");
 
-        // Insert into profiles
-        await supabase.from("profiles").insert([{
-          id: userId,
+        // Wait for session to be available
+        let sessionUser = signUpData.user;
+        let session = (await supabase.auth.getSession()).data.session;
+        if (!sessionUser && session && session.user) {
+          sessionUser = session.user;
+        }
+        // RE-GET session & user in case
+        if (!sessionUser) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          session = (await supabase.auth.getSession()).data.session;
+          sessionUser = session?.user ?? null;
+        }
+
+        // Diagnostic logging
+        console.log("DEBUG signup insert: sessionUser", sessionUser);
+        console.log("DEBUG signup insert: sessionUser.id", sessionUser?.id);
+        console.log("DEBUG signup insert: insert params", {
+          id: sessionUser?.id,
+          name: form.name,
+          email: form.email,
+          user_type: role,
+          profile_image_url,
+          is_verified: false,
+          aadhar_number: role === "pandit" ? form.aadhar_number : null,
+          expertise: role === "pandit" ? form.expertise : null,
+          address: role === "pandit" ? form.address : null
+        });
+
+        // Insert into profiles (using user id from current session!)
+        const { error: insertError } = await supabase.from("profiles").insert([{
+          id: sessionUser?.id,
           name: form.name,
           email: form.email,
           user_type: role,
@@ -79,6 +108,10 @@ export default function AuthPage() {
           expertise: role === "pandit" ? form.expertise : null,
           address: role === "pandit" ? form.address : null
         }]);
+        if (insertError) {
+          console.error("Profile insert error", insertError);
+          throw new Error("Profile insert failed: " + insertError.message);
+        }
 
         // Send welcome email for both roles
         fetch("https://oftrrhwbxmiwrtuzpzmu.supabase.co/functions/v1/send-registration-email", {
@@ -143,3 +176,4 @@ export default function AuthPage() {
     </div>
   );
 }
+
