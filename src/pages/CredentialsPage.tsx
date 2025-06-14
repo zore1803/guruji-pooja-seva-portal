@@ -11,7 +11,6 @@ import {
   FormItem,
   FormLabel,
   FormControl,
-  FormDescription,
   FormMessage,
   FormField,
 } from "@/components/ui/form";
@@ -23,12 +22,14 @@ type CredentialsFormValues = {
   fromDate: Date | null;
   toDate: Date | null;
   location: string;
+  address: string;
 };
 
 const defaultValues: CredentialsFormValues = {
   fromDate: null,
   toDate: null,
   location: "",
+  address: "",
 };
 
 export default function CredentialsPage() {
@@ -41,7 +42,6 @@ export default function CredentialsPage() {
   });
 
   const onSubmit = (data: CredentialsFormValues) => {
-    // Add your handler here (e.g., navigate to payment, save info, etc)
     toast({
       title: "Credentials Submitted",
       description: (
@@ -49,10 +49,10 @@ export default function CredentialsPage() {
           <div><b>From:</b> {data.fromDate ? format(data.fromDate, "PPP") : "--"}</div>
           <div><b>To:</b> {data.toDate ? format(data.toDate, "PPP") : "--"}</div>
           <div><b>Location:</b> {data.location}</div>
+          <div><b>Address:</b> {data.address}</div>
         </div>
       ),
     });
-    // Example: after submit navigate back to pooja's detail page
     setTimeout(() => {
       navigate(`/product/${id}`);
     }, 1000);
@@ -65,7 +65,6 @@ export default function CredentialsPage() {
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
             <div className="flex flex-col md:flex-row gap-6">
-              
               <FormField
                 control={form.control}
                 name="fromDate"
@@ -144,17 +143,36 @@ export default function CredentialsPage() {
                 )}
               />
             </div>
-            
+
             <FormField
               control={form.control}
               name="location"
-              rules={{ required: "Please enter the region or location of pooja" }}
+              rules={{ required: "Please enter the city/town/village location" }}
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Location / Region</FormLabel>
+                  <FormLabel>Location</FormLabel>
                   <FormControl>
                     <Input
-                      placeholder="Enter the region or location"
+                      placeholder="Enter city/town/village"
+                      {...field}
+                      autoComplete="off"
+                    />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="address"
+              rules={{ required: "Please enter the full address" }}
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Address</FormLabel>
+                  <FormControl>
+                    <Input
+                      placeholder="Enter full address (house no, street, etc)"
                       {...field}
                       autoComplete="off"
                     />
