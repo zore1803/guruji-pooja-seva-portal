@@ -11,8 +11,13 @@ const Contact = () => (
           <p className="text-gray-700">
             Vasantdada Patil Education Complex, Eastern Express Highway Near Everard Nagar, Chunabhatti, Sion, Mumbai, Maharashtra 400022
           </p>
-          <div className="my-4 rounded overflow-hidden border">
-            <img src="/lovable-uploads/placeholder-map.png" alt="Map Placeholder" className="w-full h-48 object-cover rounded" />
+          <div className="my-4 rounded overflow-hidden border w-full">
+            <img
+              src="https://maps.googleapis.com/maps/api/staticmap?center=Vasantdada+Patil+Education+Complex,Chunabhatti,Mumbai&zoom=15&size=600x300&maptype=roadmap&markers=color:orange%7Clabel:E%7CVasantdada+Patil+Education+Complex,Chunabhatti,Mumbai"
+              alt="Map location of address"
+              className="w-full h-48 object-cover"
+              style={{ borderRadius: 8, background: "#eee" }}
+            />
           </div>
           <h3 className="text-lg font-semibold text-orange-800 mt-4 mb-2">Email</h3>
           <a href="mailto:customer@eguruji.com" className="text-orange-700 hover:underline">customer@eguruji.com</a>
@@ -43,3 +48,4 @@ const Contact = () => (
 );
 
 export default Contact;
+
