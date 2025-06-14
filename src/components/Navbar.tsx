@@ -16,6 +16,8 @@ const Navbar = () => {
         </span>
         <Link to="/" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">Home</Link>
         <Link to="/services" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">Services</Link>
+        <Link to="/about" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">About Us</Link>
+        <Link to="/contact" className="ml-2 text-gray-600 hover:text-orange-600 text-sm">Contact</Link>
       </div>
       <div className="flex items-center gap-3">
         {!user && (

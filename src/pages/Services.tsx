@@ -94,21 +94,21 @@ const services = [
     id: 11,
     title: "Ganpati Visarjan Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png", // Ganpati Visarjan (matches name with "Ganesh Havan", but using as Visarjan per standard practice)
+    img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png", // Ganpati Visarjan
     price: "₹00.00",
   },
   {
     id: 12,
     title: "Janmashtami Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png", // Janmashtami (based on unique upload, if recognizable)
+    img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png", // Janmashtami
     price: "₹00.00",
   },
   {
     id: 13,
     title: "Diwali Lakshmi Pooja",
     category: "FESTIVAL",
-    img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png", // Diwali/Lakshmi Ma
+    img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png", // Diwali Lakshmi
     price: "₹00.00",
   },
   {
@@ -129,28 +129,28 @@ const services = [
     id: 16,
     title: "Navgraha Shanti",
     category: "SHANTI",
-    img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png", // Navgraha Shanti (no more logo here)
+    img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png", // Navgraha Shanti
     price: "₹00.00",
   },
   {
     id: 17,
     title: "Ganapti Havan",
     category: "HAVAN",
-    img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png", // Ganapti Havan (dedicated, matches 'GAN H' mapping)
+    img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png", // Ganapti Havan
     price: "₹00.00",
   },
   {
     id: 18,
     title: "Dhan Laxmi Pooja",
     category: "HAVAN",
-    img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png", // Dhan Laxmi (Lakshmi Ma)
+    img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png", // Dhan Laxmi
     price: "₹00.00",
   },
   {
     id: 19,
     title: "Ganesh Havan",
     category: "HAVAN",
-    img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png", // Ganesh Havan separate from Visarjan
+    img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png", // Ganesh Havan
     price: "₹00.00",
   },
   {
