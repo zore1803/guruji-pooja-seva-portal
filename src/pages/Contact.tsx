@@ -8,8 +8,12 @@ const Contact = () => (
       <h2 className="font-playfair text-3xl md:text-4xl font-bold text-center text-orange-700 mb-6">Contact Us</h2>
       <div className="flex flex-col lg:flex-row gap-8 bg-orange-50 rounded-lg shadow-md p-6">
         <div className="w-full lg:w-1/2 flex flex-col gap-3">
-          {/* Added building image */}
-          <div className="mb-4 rounded overflow-hidden border w-full bg-white">
+          <h3 className="text-lg font-semibold text-orange-800 mb-2">Address</h3>
+          <p className="text-gray-700">
+            Vasantdada Patil Education Complex, Eastern Express Highway Near Everard Nagar, Chunabhatti, Sion, Mumbai, Maharashtra 400022
+          </p>
+          {/* Building image now displayed below address */}
+          <div className="my-4 rounded overflow-hidden border w-full bg-white">
             <img
               src="/lovable-uploads/779fc3ac-fc11-4830-a82c-728441c025cb.png"
               alt="Vasantdada Patil Education Complex"
@@ -17,10 +21,6 @@ const Contact = () => (
               style={{ background: "#eee" }}
             />
           </div>
-          <h3 className="text-lg font-semibold text-orange-800 mb-2">Address</h3>
-          <p className="text-gray-700">
-            Vasantdada Patil Education Complex, Eastern Express Highway Near Everard Nagar, Chunabhatti, Sion, Mumbai, Maharashtra 400022
-          </p>
           <div className="my-4 rounded overflow-hidden border w-full">
             <img
               src="https://maps.googleapis.com/maps/api/staticmap?center=Vasantdada+Patil+Education+Complex,Chunabhatti,Mumbai&zoom=15&size=600x300&maptype=roadmap&markers=color:orange%7Clabel:E%7CVasantdada+Patil+Education+Complex,Chunabhatti,Mumbai"
@@ -59,3 +59,4 @@ const Contact = () => (
 );
 
 export default Contact;
+
