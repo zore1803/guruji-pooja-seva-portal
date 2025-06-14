@@ -7,7 +7,7 @@ const Index = () => (
       <img
         src="/lovable-uploads/be6198c7-494f-4214-907a-fd1da0249e44.png"
         alt="E-GURUJI Logo"
-        className="rounded-lg mb-4 shadow-lg w-full max-w-[360px] mx-auto bg-white p-4"
+        className="rounded-lg mb-4 shadow-lg w-full max-w-[360px] mx-auto"
       />
       <h1 className="text-4xl md:text-5xl font-bold text-orange-700 font-playfair">
         E-GURUJI: Your Trusted Online Pandit Booking Portal
