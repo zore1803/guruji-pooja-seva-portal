@@ -21,14 +21,6 @@ const Contact = () => (
               style={{ background: "#eee" }}
             />
           </div>
-          <div className="my-4 rounded overflow-hidden border w-full">
-            <img
-              src="https://maps.googleapis.com/maps/api/staticmap?center=Vasantdada+Patil+Education+Complex,Chunabhatti,Mumbai&zoom=15&size=600x300&maptype=roadmap&markers=color:orange%7Clabel:E%7CVasantdada+Patil+Education+Complex,Chunabhatti,Mumbai"
-              alt="Map location of address"
-              className="w-full h-48 object-cover"
-              style={{ borderRadius: 8, background: "#eee" }}
-            />
-          </div>
           <h3 className="text-lg font-semibold text-orange-800 mt-4 mb-2">Email</h3>
           <a href="mailto:customer@eguruji.com" className="text-orange-700 hover:underline">customer@eguruji.com</a>
           <h3 className="text-lg font-semibold text-orange-800 mt-4 mb-2">Phone</h3>
@@ -59,4 +51,3 @@ const Contact = () => (
 );
 
 export default Contact;
-
