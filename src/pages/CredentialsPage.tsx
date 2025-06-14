@@ -47,14 +47,13 @@ export default function CredentialsPage() {
   const [loading, setLoading] = React.useState(false);
 
   const onSubmit = async (data: CredentialsFormValues) => {
-    if (!user) {
+    if (!user || !user.id) {
       toast({
         title: "You must be logged in!",
         description: "Please log in to proceed.",
       });
       return;
     }
-
     if (!id || isNaN(Number(id))) {
       toast({
         title: "Invalid Service",
@@ -62,7 +61,6 @@ export default function CredentialsPage() {
       });
       return;
     }
-
     if (!data.fromDate || !data.toDate) {
       toast({
         title: "Date Required",
@@ -70,15 +68,12 @@ export default function CredentialsPage() {
       });
       return;
     }
-
     setLoading(true);
-
-    // Before insert: Check if the service exists!
     const { data: existingService, error: serviceError } = await supabase
       .from("services")
       .select("id")
       .eq("id", Number(id))
-      .single();
+      .maybeSingle();
 
     if (serviceError || !existingService) {
       setLoading(false);
@@ -89,11 +84,11 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Only use the current user's UUID for customer_id!
+    // Strictly pass the current session user id as UUID for customer_id
     const { error } = await supabase.from("bookings").insert([
       {
         service_id: Number(id),
-        customer_id: user.id, // Guarantee this is the logged-in user!
+        customer_id: user.id,
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
         status: "pending",
         invoice_url: JSON.stringify({
@@ -102,9 +97,7 @@ export default function CredentialsPage() {
         }),
       },
     ]);
-
     setLoading(false);
-
     if (error) {
       toast({
         title: "Error submitting booking.",
@@ -112,7 +105,6 @@ export default function CredentialsPage() {
       });
       return;
     }
-
     toast({
       title: "Credentials Submitted",
       description: (
@@ -142,26 +134,7 @@ export default function CredentialsPage() {
         )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
-            {/* Display User UUID as readonly (reference only), not editable or required */}
-            {user && (
-              <div>
-                <label className="block text-xs text-muted-foreground font-mono mb-1" htmlFor="user-uuid">
-                  Your User UUID <span className="text-red-500">*</span>
-                </label>
-                <div className="flex gap-1">
-                  <input
-                    id="user-uuid"
-                    className="bg-gray-100 border border-gray-300 px-3 py-1 rounded text-xs w-full font-mono"
-                    value={user.id}
-                    readOnly
-                  />
-                  <CopyToClipboardButton value={user.id} />
-                </div>
-                <p className="text-xs text-muted-foreground mt-1">
-                  Required for correct booking submission
-                </p>
-              </div>
-            )}
+            {/* REMOVE the input field for user UUID from the form */}
             <div className="flex flex-col md:flex-row gap-6">
               <FormField
                 control={form.control}
