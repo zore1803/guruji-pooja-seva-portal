@@ -7,12 +7,26 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import EditCustomerProfileModal from "@/components/EditCustomerProfileModal";
 import { LogOut, Edit } from "lucide-react";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
+import { format } from "date-fns";
+
+// Define booking display type
+type Booking = {
+  id: string;
+  service_id: number | null;
+  tentative_date: string | null;
+  status: string | null;
+  invoice_url: string | null;
+  created_at: string;
+};
 
 export default function DashboardCustomer() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
   useEffect(() => {
     if (!user) {
@@ -23,6 +37,22 @@ export default function DashboardCustomer() {
       setProfile(data);
     });
   }, [user, navigate]);
+
+  // Fetch pending bookings for this customer
+  useEffect(() => {
+    if (!user) return;
+    setLoadingBookings(true);
+    supabase
+      .from("bookings")
+      .select("*")
+      .eq("customer_id", user.id)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false })
+      .then(({ data, error }) => {
+        setBookings(data || []);
+        setLoadingBookings(false);
+      });
+  }, [user]);
 
   // Refetch profile after update
   const handleProfileUpdated = (updated: any) => {
@@ -57,10 +87,59 @@ export default function DashboardCustomer() {
           </Button>
         </div>
       </div>
-      <div className="flex-1">
+      <div className="flex-1 w-full">
         <h1 className="text-2xl font-bold mb-2">Customer Dashboard</h1>
         <p>Browse and book pooja services below, or manage your upcoming bookings.</p>
-        {/* TODO: Add booking list and link to services */}
+        {/* Pending Bookings List */}
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-2">Pending Bookings</h2>
+          {loadingBookings ? (
+            <div className="text-muted-foreground">Loading your bookings...</div>
+          ) : bookings.length === 0 ? (
+            <div className="text-muted-foreground">No pending bookings found.</div>
+          ) : (
+            <Table>
+              <TableCaption>Pending bookings you have requested</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Dates</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Address</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Requested At</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bookings.map((b) => {
+                  let location = "-";
+                  let address = "-";
+                  if (b.invoice_url) {
+                    try {
+                      const parsed = JSON.parse(b.invoice_url);
+                      location = parsed.location || "-";
+                      address = parsed.address || "-";
+                    } catch {}
+                  }
+                  return (
+                    <TableRow key={b.id}>
+                      <TableCell>
+                        {b.tentative_date ? format(new Date(b.tentative_date), "PPP") : "--"}
+                      </TableCell>
+                      <TableCell>{location}</TableCell>
+                      <TableCell>{address}</TableCell>
+                      <TableCell>
+                        <span className="inline-block px-2 rounded bg-orange-100 text-orange-800">{b.status === "pending" ? "Booking Pending" : b.status}</span>
+                      </TableCell>
+                      <TableCell>
+                        {b.created_at ? format(new Date(b.created_at), "PPPp") : "--"}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+          )}
+        </div>
       </div>
       <EditCustomerProfileModal
         open={openEditModal}

@@ -17,6 +17,8 @@ import {
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
 import { Calendar as CalendarIcon } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { useSession } from "@/hooks/useSession";
 
 type CredentialsFormValues = {
   fromDate: Date | null;
@@ -35,13 +37,68 @@ const defaultValues: CredentialsFormValues = {
 export default function CredentialsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { user } = useSession();
 
   const form = useForm<CredentialsFormValues>({
     defaultValues,
     mode: "onTouched",
   });
 
-  const onSubmit = (data: CredentialsFormValues) => {
+  const [loading, setLoading] = React.useState(false);
+
+  const onSubmit = async (data: CredentialsFormValues) => {
+    if (!user) {
+      toast({
+        title: "You must be logged in!",
+        description: "Please log in to proceed.",
+      });
+      return;
+    }
+
+    if (!id) {
+      toast({
+        title: "Invalid Service",
+        description: "No service ID found.",
+      });
+      return;
+    }
+
+    if (!data.fromDate || !data.toDate) {
+      toast({
+        title: "Date Required",
+        description: "Please provide both dates.",
+      });
+      return;
+    }
+
+    setLoading(true);
+    // Insert booking to Supabase
+    const { error } = await supabase.from("bookings").insert([
+      {
+        service_id: Number(id),
+        customer_id: user.id,
+        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
+        // Store address info in invoice_url as temp (if required, or just leave)
+        status: "pending",
+        // Not inserting confirmed_date, pandit_id yet
+        // Optionally, can extend table to store location/address separately. For now, add to invoice_url.
+        invoice_url: JSON.stringify({
+          location: data.location,
+          address: data.address,
+        }),
+      },
+    ]);
+
+    setLoading(false);
+
+    if (error) {
+      toast({
+        title: "Error submitting booking.",
+        description: error.message,
+      });
+      return;
+    }
+
     toast({
       title: "Credentials Submitted",
       description: (
@@ -55,7 +112,7 @@ export default function CredentialsPage() {
     });
     setTimeout(() => {
       navigate(`/product/${id}`);
-    }, 1000);
+    }, 1200);
   };
 
   return (
@@ -103,7 +160,6 @@ export default function CredentialsPage() {
                   </FormItem>
                 )}
               />
-
               <FormField
                 control={form.control}
                 name="toDate"
@@ -143,7 +199,6 @@ export default function CredentialsPage() {
                 )}
               />
             </div>
-
             <FormField
               control={form.control}
               name="location"
@@ -162,7 +217,6 @@ export default function CredentialsPage() {
                 </FormItem>
               )}
             />
-
             <FormField
               control={form.control}
               name="address"
@@ -181,13 +235,13 @@ export default function CredentialsPage() {
                 </FormItem>
               )}
             />
-
             <Button
               type="submit"
               size="lg"
               className="bg-orange-700 w-full text-white hover:bg-orange-800"
+              disabled={loading}
             >
-              Submit
+              {loading ? "Submitting..." : "Submit"}
             </Button>
           </form>
         </Form>
