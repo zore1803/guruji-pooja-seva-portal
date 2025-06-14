@@ -89,10 +89,11 @@ export default function CredentialsPage() {
       return;
     }
 
+    // Only use the current user's UUID for customer_id!
     const { error } = await supabase.from("bookings").insert([
       {
         service_id: Number(id),
-        customer_id: user.id,
+        customer_id: user.id, // Guarantee this is the logged-in user!
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
         status: "pending",
         invoice_url: JSON.stringify({
@@ -141,7 +142,7 @@ export default function CredentialsPage() {
         )}
         <Form {...form}>
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
-            {/* User UUID readonly field, required */}
+            {/* Display User UUID as readonly (reference only), not editable or required */}
             {user && (
               <div>
                 <label className="block text-xs text-muted-foreground font-mono mb-1" htmlFor="user-uuid">
@@ -153,7 +154,6 @@ export default function CredentialsPage() {
                     className="bg-gray-100 border border-gray-300 px-3 py-1 rounded text-xs w-full font-mono"
                     value={user.id}
                     readOnly
-                    required
                   />
                   <CopyToClipboardButton value={user.id} />
                 </div>
