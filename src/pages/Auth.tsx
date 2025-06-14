@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -9,7 +8,7 @@ import { toast } from "@/components/ui/use-toast";
 type Role = "pandit" | "customer";
 const PANDIT_EXTRA_FIELDS = [
   { name: "aadhar_number", type: "text", label: "Aadhar Number (for verification)" },
-  { name: "expertise", type: "text", label: "Expertise in rituals/services" },
+  { name: "expertise", type: "text", label: "Experience (years or details)" },
   { name: "address", type: "text", label: "Address (City/Location)" }
 ];
 
@@ -105,7 +104,15 @@ export default function AuthPage() {
                 {profilePreview && <img src={profilePreview} alt="preview" className="mt-2 max-h-24 rounded" />}
               </div>
               {role === "pandit" && PANDIT_EXTRA_FIELDS.map(f => (
-                <Input key={f.name} name={f.name} type={f.type} placeholder={f.label} value={form[f.name]} onChange={handleChange} required />
+                <Input
+                  key={f.name}
+                  name={f.name}
+                  type={f.type}
+                  placeholder={f.label}
+                  value={form[f.name]}
+                  onChange={handleChange}
+                  required
+                />
               ))}
             </>
           )}
