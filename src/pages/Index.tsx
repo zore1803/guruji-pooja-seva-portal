@@ -1,6 +1,6 @@
 
-// Eguruji1803 Landing Page
 import { Link } from "react-router-dom";
+import Footer from "@/components/Footer";
 
 const Index = () => (
   <div className="bg-orange-50 min-h-screen">
@@ -49,8 +49,8 @@ const Index = () => (
         </div>
       </div>
     </section>
+    <Footer />
   </div>
 );
 
 export default Index;
-

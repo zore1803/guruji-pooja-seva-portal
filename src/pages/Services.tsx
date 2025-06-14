@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import Footer from "@/components/Footer";
 
 // New local image paths for the first 10 services
 const serviceImages = [
@@ -204,36 +205,7 @@ export default function ServicesPage() {
         </div>
       </section>
       {/* Footer */}
-      <footer className="border-t mt-12 py-6 bg-gray-50">
-        <div className="container mx-auto px-4 flex flex-col lg:flex-row justify-between gap-8">
-          <div>
-            <h4 className="font-semibold mb-2">CUSTOMER SUPPORT</h4>
-            <nav className="flex flex-col gap-1">
-              <a href="mailto:customer@eguruji.com" className="hover:underline">customer@eguruji.com</a>
-              <a href="tel:+9191XXXXXX69" className="hover:underline">+91 91XXXXXX69</a>
-            </nav>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-2">INFO</h4>
-            <nav className="flex flex-col gap-1">
-              <a href="/cancelpolicy" className="hover:underline">Cancellation Policy</a>
-              <a href="/terms" className="hover:underline">Terms & Conditions</a>
-              <a href="/policy" className="hover:underline">Privacy Policy</a>
-              <a href="#" className="hover:underline">Erase my data</a>
-            </nav>
-          </div>
-          <div>
-            <h4 className="font-semibold mb-2">KEEP UP TO DATE</h4>
-            <form className="flex gap-2">
-              <input type="email" required placeholder="Your Email Here" className="px-3 py-2 border rounded text-sm" />
-              <button className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700">SUBSCRIBE</button>
-            </form>
-          </div>
-        </div>
-        <div className="text-center mt-6 text-gray-400 text-xs">
-          © 2024 E-GURUJI
-        </div>
-      </footer>
+      <Footer />
     </div>
   );
 }

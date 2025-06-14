@@ -1,5 +1,6 @@
 
 import React from "react";
+import Footer from "@/components/Footer";
 
 const Contact = () => (
   <div className="bg-white min-h-screen py-10 px-2">
@@ -44,8 +45,8 @@ const Contact = () => (
         </div>
       </div>
     </div>
+    <Footer />
   </div>
 );
 
 export default Contact;
-
