@@ -55,6 +55,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[4],
     price: "₹00.00",
+    link: "/product/5",
   },
   {
     id: 6,
@@ -62,6 +63,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[5],
     price: "₹00.00",
+    link: "/product/6",
   },
   {
     id: 7,
@@ -69,6 +71,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[6],
     price: "₹00.00",
+    link: "/product/7",
   },
   {
     id: 8,
@@ -76,6 +79,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[7],
     price: "₹00.00",
+    link: "/product/8",
   },
   {
     id: 9,
@@ -83,6 +87,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[8],
     price: "₹00.00",
+    link: "/product/9",
   },
   {
     id: 10,
@@ -90,6 +95,7 @@ const services = [
     category: "REGULAR",
     img: serviceImages[9],
     price: "₹00.00",
+    link: "/product/10",
   },
   {
     id: 11,
@@ -97,6 +103,7 @@ const services = [
     category: "FESTIVAL",
     img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png", // Ganpati Visarjan
     price: "₹00.00",
+    link: "/product/11",
   },
   {
     id: 12,
@@ -104,6 +111,7 @@ const services = [
     category: "FESTIVAL",
     img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png", // Janmashtami
     price: "₹00.00",
+    link: "/product/12",
   },
   {
     id: 13,
@@ -111,6 +119,7 @@ const services = [
     category: "FESTIVAL",
     img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png", // Diwali Lakshmi
     price: "₹00.00",
+    link: "/product/13",
   },
   {
     id: 14,
@@ -118,6 +127,7 @@ const services = [
     category: "FESTIVAL",
     img: "/lovable-uploads/3a7d649e-67b9-4c49-9866-d9cb4f95f0aa.png", // Ganpati Sthapana
     price: "₹00.00",
+    link: "/product/14",
   },
   {
     id: 15,
@@ -125,6 +135,7 @@ const services = [
     category: "SHANTI",
     img: "/lovable-uploads/251e248a-4351-49bd-8651-6aeefdaee648.png", // Udak Shanti
     price: "₹00.00",
+    link: "/product/15",
   },
   {
     id: 16,
@@ -132,6 +143,7 @@ const services = [
     category: "SHANTI",
     img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png", // Navgraha Shanti
     price: "₹00.00",
+    link: "/product/16",
   },
   {
     id: 17,
@@ -139,6 +151,7 @@ const services = [
     category: "HAVAN",
     img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png", // Ganapti Havan
     price: "₹00.00",
+    link: "/product/17",
   },
   {
     id: 18,
@@ -146,6 +159,7 @@ const services = [
     category: "HAVAN",
     img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png", // Dhan Laxmi
     price: "₹00.00",
+    link: "/product/18",
   },
   {
     id: 19,
@@ -153,6 +167,7 @@ const services = [
     category: "HAVAN",
     img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png", // Ganesh Havan
     price: "₹00.00",
+    link: "/product/19",
   },
   {
     id: 20,
@@ -160,6 +175,7 @@ const services = [
     category: "HAVAN",
     img: "/lovable-uploads/1a779d2d-ca9c-4348-a5b7-1745de1e05fa.png", // Satyanarayan
     price: "₹00.00",
+    link: "/product/20",
   },
 ];
 
