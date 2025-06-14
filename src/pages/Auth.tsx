@@ -45,7 +45,6 @@ export default function AuthPage() {
       if (error) toast({ title: "Login failed", description: error.message });
       else toast({ title: "Logged in!" }); // Session will redirect via useSession
     } else {
-      // Register: upload image, create user, insert profile row, update user_metadata
       try {
         let profile_image_url = "";
         if (form.profile_image_file) {
@@ -80,6 +79,22 @@ export default function AuthPage() {
           expertise: role === "pandit" ? form.expertise : null,
           address: role === "pandit" ? form.address : null
         }]);
+
+        // Send email ONLY for customers
+        if (role === "customer") {
+          // NOTE: No need to await. Don't block user on potential email delay.
+          fetch("https://oftrrhwbxmiwrtuzpzmu.supabase.co/functions/v1/send-registration-email", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              email: form.email,
+              name: form.name || "", // fallback to blank
+            }),
+          });
+        }
+
         toast({ title: "Registration successful", description: "Check your email for confirmation." });
         navigate(role === "pandit" ? "/dashboard-pandit" : "/dashboard-customer");
       } catch (err: any) {
