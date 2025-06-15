@@ -63,7 +63,11 @@ export default function DashboardCustomer() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
-        setBookings(data as Booking[] || []);
+        if (Array.isArray(data)) {
+          setBookings(data);
+        } else {
+          setBookings([]);
+        }
         setLoadingBookings(false);
       });
   }, [user]);

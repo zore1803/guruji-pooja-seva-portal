@@ -13,7 +13,7 @@ export type Database = {
         Row: {
           confirmed_date: string | null
           created_at: string
-          customer_id: string | null
+          created_by: string
           id: string
           invoice_url: string | null
           pandit_id: string | null
@@ -25,7 +25,7 @@ export type Database = {
         Insert: {
           confirmed_date?: string | null
           created_at?: string
-          customer_id?: string | null
+          created_by?: string
           id?: string
           invoice_url?: string | null
           pandit_id?: string | null
@@ -37,7 +37,7 @@ export type Database = {
         Update: {
           confirmed_date?: string | null
           created_at?: string
-          customer_id?: string | null
+          created_by?: string
           id?: string
           invoice_url?: string | null
           pandit_id?: string | null
