@@ -55,9 +55,24 @@ export default function DashboardPandit() {
   // Fetch Pandit Profile
   useEffect(() => {
     if (!user) return;
-    supabase.from("profiles").select("*").eq("id", user.id).single().then(({ data }) => {
-      setProfile(data);
-    });
+    // Robustly wait for profile; new signups are guaranteed an automatic profile row.
+    let isMounted = true;
+    async function fetchProfile() {
+      let tries = 0;
+      while (tries < 5) {
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (data) {
+          if (isMounted) setProfile(data);
+          return;
+        }
+        // Profile might not exist immediately after new signup; wait then retry
+        await new Promise(res => setTimeout(res, 400));
+        tries += 1;
+      }
+      if (isMounted) setProfile(null);
+    }
+    fetchProfile();
+    return () => { isMounted = false; };
   }, [user]);
 
   // Fetch summary (accepted bookings + earnings)
@@ -144,8 +159,15 @@ export default function DashboardPandit() {
     toast({ title: "Profile updated" });
   };
 
-  if (!user || !profile) {
+  if (!user) {
     return <div className="flex items-center justify-center py-10">Loading...</div>;
+  }
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center py-10 text-gray-500 animate-pulse">
+        Creating your profile...
+      </div>
+    );
   }
 
   return (

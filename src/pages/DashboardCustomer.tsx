@@ -33,9 +33,25 @@ export default function DashboardCustomer() {
       navigate("/auth?role=customer");
       return;
     }
-    supabase.from("profiles").select("*").eq("id", user.id).single().then(({ data }) => {
-      setProfile(data);
-    });
+    // Robustly wait for profile; new signups are guaranteed an automatic profile row.
+    let isMounted = true;
+    async function fetchProfile() {
+      let tries = 0;
+      while (tries < 5) {
+        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+        if (data) {
+          if (isMounted) setProfile(data);
+          return;
+        }
+        // Profile might not exist immediately after new signup; wait then retry
+        await new Promise(res => setTimeout(res, 400));
+        tries += 1;
+      }
+      // After 5 tries (~2 seconds), show null (should never hit this unless something is wrong)
+      if (isMounted) setProfile(null);
+    }
+    fetchProfile();
+    return () => { isMounted = false; };
   }, [user, navigate]);
 
   // Fetch pending bookings for this customer
@@ -65,8 +81,16 @@ export default function DashboardCustomer() {
     window.location.href = "/";
   };
 
-  if (!user || !profile) {
+  if (!user) {
     return <div className="flex items-center justify-center py-10">Loading...</div>;
+  }
+  // Just show spinner for new signups while their profile auto-inserts
+  if (!profile) {
+    return (
+      <div className="flex items-center justify-center py-10 text-gray-500 animate-pulse">
+        Creating your profile...
+      </div>
+    );
   }
 
   return (
