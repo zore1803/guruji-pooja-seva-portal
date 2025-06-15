@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -16,11 +17,12 @@ export default function CredentialsPage() {
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async (data: CredentialsFormValues) => {
-    // Debug logs
+    // Debug logs for types
     console.log('[Booking DEBUG] Params:', { raw_param_id: id, typeof_param_id: typeof id });
     console.log('[Booking DEBUG] User:', { id: user?.id, typeof_user_id: typeof user?.id });
     console.log('[Booking DEBUG] Payload from form:', data);
 
+    // Double-check types & values
     if (!user || !user.id) {
       toast({
         title: "You must be logged in!",
@@ -35,12 +37,12 @@ export default function CredentialsPage() {
       });
       return;
     }
-    // Convert id param to number safely
+    // Make sure serviceId is a valid integer
     const serviceIdNum = Number(id);
-    if (isNaN(serviceIdNum)) {
+    if (isNaN(serviceIdNum) || !Number.isInteger(serviceIdNum)) {
       toast({
         title: "Invalid Service",
-        description: "Service ID is not a valid number.",
+        description: "Service ID is not a valid integer.",
       });
       return;
     }
@@ -94,6 +96,13 @@ export default function CredentialsPage() {
       address: data.address,
       // invoice_url: not used for location/address anymore
     };
+    // Defensive log: ensure no id or created_by is present
+    Object.keys(bookingPayload).forEach(key => {
+      if (['id', 'created_by'].includes(key)) {
+        // Should never be set!
+        throw new Error("Sanity error: Attempting to set a UUID column with potential invalid data!");
+      }
+    });
     console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
     // Double check types
