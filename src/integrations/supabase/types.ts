@@ -190,6 +190,24 @@ export type Database = {
         }
         Relationships: []
       }
+      subscribers: {
+        Row: {
+          email: string
+          id: number
+          subscribed_at: string | null
+        }
+        Insert: {
+          email: string
+          id?: number
+          subscribed_at?: string | null
+        }
+        Update: {
+          email?: string
+          id?: number
+          subscribed_at?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
