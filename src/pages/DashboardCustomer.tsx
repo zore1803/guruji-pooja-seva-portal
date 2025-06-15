@@ -18,6 +18,7 @@ type Booking = {
   status: string | null;
   invoice_url: string | null;
   created_at: string;
+  // No customer_id field
 };
 
 export default function DashboardCustomer() {
@@ -54,14 +55,14 @@ export default function DashboardCustomer() {
     return () => { isMounted = false; };
   }, [user, navigate]);
 
-  // Fetch pending bookings for this customer
+  // Fetch pending bookings for this user (now by created_by)
   useEffect(() => {
     if (!user) return;
     setLoadingBookings(true);
     supabase
       .from("bookings")
       .select("*")
-      .eq("customer_id", user.id)
+      .eq("created_by", user.id)
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {

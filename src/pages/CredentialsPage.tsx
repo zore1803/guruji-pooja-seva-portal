@@ -17,7 +17,7 @@ export default function CredentialsPage() {
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async (data: CredentialsFormValues) => {
-    // Add debug logs for all variables about to be inserted
+    // Debug logs
     console.log('[Booking DEBUG] Params:', { raw_param_id: id, typeof_param_id: typeof id });
     console.log('[Booking DEBUG] User:', { id: user?.id, typeof_user_id: typeof user?.id });
     console.log('[Booking DEBUG] Payload from form:', data);
@@ -29,7 +29,6 @@ export default function CredentialsPage() {
       });
       return;
     }
-
     if (!id) {
       toast({
         title: "Invalid Service",
@@ -37,7 +36,7 @@ export default function CredentialsPage() {
       });
       return;
     }
-    // Ensure we convert the id param to number safely
+    // Convert id param to number safely
     const serviceIdNum = Number(id);
     if (isNaN(serviceIdNum)) {
       toast({
@@ -87,23 +86,22 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Logging just before insert
+    // No more customer_id, use created_by (implicit)
     const bookingPayload = {
       service_id: serviceIdNum,
-      customer_id: user.id,
       tentative_date: format(data.fromDate, "yyyy-MM-dd"),
       status: "pending",
       invoice_url: JSON.stringify({
         location: data.location,
         address: data.address,
       }),
+      // created_by: not needed, will be set by DEFAULT
     };
     console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
     // Double check types
     if (
-      typeof bookingPayload.service_id !== "number" ||
-      typeof bookingPayload.customer_id !== "string"
+      typeof bookingPayload.service_id !== "number"
     ) {
       toast({
         title: "Type error!",
@@ -163,3 +161,4 @@ export default function CredentialsPage() {
     </div>
   );
 }
+
