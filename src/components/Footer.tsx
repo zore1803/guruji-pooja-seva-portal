@@ -1,4 +1,3 @@
-
 import React from "react";
 
 const Footer = () => (
@@ -19,7 +18,7 @@ const Footer = () => (
           <li><a href="/cancelpolicy" className="hover:underline text-gray-700">Cancellation Policy</a></li>
           <li><a href="/terms" className="hover:underline text-gray-700">Terms & Conditions</a></li>
           <li><a href="/policy" className="hover:underline text-gray-700">Privacy Policy</a></li>
-          <li><a href="#" className="hover:underline text-gray-700">Erase my data</a></li>
+          <li><a href="/erase" className="hover:underline text-gray-700">Erase my data</a></li>
         </ul>
       </div>
       {/* Newsletter */}

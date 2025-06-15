@@ -14,6 +14,10 @@ import About from "./pages/About";
 import Contact from "./pages/Contact";
 import PoojaDetailPage from "./pages/PoojaDetailPage";
 import CredentialsPage from "./pages/CredentialsPage";
+import CancelPolicy from "./pages/CancelPolicy";
+import Terms from "./pages/Terms";
+import Policy from "./pages/Policy";
+import EraseMyData from "./pages/EraseMyData";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +38,10 @@ const App = () => (
           <Route path="/credentials/:id" element={<CredentialsPage />} />
           <Route path="/about" element={<About />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/cancelpolicy" element={<CancelPolicy />} />
+          <Route path="/terms" element={<Terms />} />
+          <Route path="/policy" element={<Policy />} />
+          <Route path="/erase" element={<EraseMyData />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>
