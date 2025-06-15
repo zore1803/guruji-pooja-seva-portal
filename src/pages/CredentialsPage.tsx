@@ -24,6 +24,15 @@ export default function CredentialsPage() {
       });
       return;
     }
+
+    // Add debugging logs for user.id and id params
+    console.log('SUBMIT booking:', {
+      param_id: id,
+      user_id: user.id,
+      typeof_user_id: typeof user.id,
+    });
+
+    // Validate that id is a number (service_id)
     if (!id || isNaN(Number(id))) {
       toast({
         title: "Invalid Service",
@@ -31,6 +40,17 @@ export default function CredentialsPage() {
       });
       return;
     }
+
+    // Validate that user.id is a proper uuid string (basic check: 36 chars, 4 hyphens)
+    const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user.id);
+    if (!isUUID) {
+      toast({
+        title: "Invalid Session",
+        description: "Session user ID is not valid. Please logout and login again.",
+      });
+      return;
+    }
+
     if (!data.fromDate || !data.toDate) {
       toast({
         title: "Date Required",
@@ -39,6 +59,7 @@ export default function CredentialsPage() {
       return;
     }
     setLoading(true);
+
     const { data: existingService, error: serviceError } = await supabase
       .from("services")
       .select("id")
@@ -54,7 +75,15 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Use session user UUID for customer_id
+    // More detailed log before insert
+    console.log("Inserting booking with:", {
+      service_id: Number(id),
+      customer_id: user.id,
+      tentative_date: format(data.fromDate, "yyyy-MM-dd"),
+      status: "pending",
+      invoice_url: { location: data.location, address: data.address }
+    });
+
     const { error } = await supabase.from("bookings").insert([
       {
         service_id: Number(id),
@@ -73,6 +102,8 @@ export default function CredentialsPage() {
         title: "Error submitting booking.",
         description: error.message,
       });
+      // Log the error for debugging
+      console.log('BOOKING INSERT ERROR:', error);
       return;
     }
     toast({
