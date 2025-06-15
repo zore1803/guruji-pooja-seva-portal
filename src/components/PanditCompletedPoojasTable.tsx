@@ -13,6 +13,7 @@ type CompletedBooking = {
 };
 
 type Props = {
+  // Now expects all completed bookings, since we no longer have pandit_id
   panditId: string;
 };
 
@@ -24,13 +25,11 @@ export default function PanditCompletedPoojasTable({ panditId }: Props) {
     if (!panditId) return;
     setLoading(true);
 
-    // Fetch completed bookings for this pandit
+    // Fetch all completed bookings - cannot filter by pandit_id
     async function fetchCompleted() {
-      // 1. Fetch bookings (status: completed) assigned to this pandit
       const { data: bookings, error: bookingErr } = await supabase
         .from("bookings")
-        .select("id, customer_id, confirmed_date, service_id, services:service_id (name), profiles:customer_id (name, email)")
-        .eq("pandit_id", panditId)
+        .select("id, confirmed_date, service_id, services:service_id (name), profiles:created_by (name, email)")
         .eq("status", "completed")
         .order("confirmed_date", { ascending: false });
 
@@ -40,7 +39,6 @@ export default function PanditCompletedPoojasTable({ panditId }: Props) {
         return;
       }
 
-      // 2. For each booking, sum paid payments for earnings
       const promises = bookings.map(async (b: any) => {
         let paymentAmount = 0;
         const { data: payments } = await supabase

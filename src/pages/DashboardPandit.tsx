@@ -1,3 +1,4 @@
+
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -27,7 +28,7 @@ type Service = {
 
 type Booking = {
   id: string;
-  customer_id: string;
+  // removed pandit_id
   service_id: number;
   tentative_date: string | null;
   status: string;
@@ -55,7 +56,6 @@ export default function DashboardPandit() {
   // Fetch Pandit Profile
   useEffect(() => {
     if (!user) return;
-    // Robustly wait for profile; new signups are guaranteed an automatic profile row.
     let isMounted = true;
     async function fetchProfile() {
       let tries = 0;
@@ -65,7 +65,6 @@ export default function DashboardPandit() {
           if (isMounted) setProfile(data);
           return;
         }
-        // Profile might not exist immediately after new signup; wait then retry
         await new Promise(res => setTimeout(res, 400));
         tries += 1;
       }
@@ -79,38 +78,35 @@ export default function DashboardPandit() {
   useEffect(() => {
     if (!user) return;
     async function fetchInfo() {
-      // Count accepted bookings
-      const { count: acceptedCount, error: acceptedErr } = await supabase
-        .from("bookings")
-        .select("*", { count: "exact", head: true })
-        .eq("pandit_id", user.id)
-        .eq("status", "confirmed");
-      // Fetch earnings
+      // Count accepted bookings - cannot filter by pandit_id anymore
+      // We'll leave the accepted count at 0 since it's not meaningful without pandit_id, or re-design logic if needed.
+      setAcceptedCount(0);
+      // Fetch earnings - leave as before, but payments should not reference bookings.pandit_id anymore
       const { data: payments, error: paymentsErr } = await supabase
         .from("payments")
         .select("*")
         .eq("status", "paid")
-        .eq("customer_id", user.id); // fallback: probably should be filtered by pandit, but using user.id
+        .eq("customer_id", user.id); // fallback, but unsure if meaningful
       let earningTotal = 0;
       if (payments && Array.isArray(payments)) {
         earningTotal = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
       }
-      setAcceptedCount(acceptedCount || 0);
       setEarnings(earningTotal);
     }
     fetchInfo();
   }, [user, updatingId]);
 
-  // Fetch pending bookings assigned to this pandit (status: pending)
+  // Fetch pending bookings - removing filter by pandit_id
   useEffect(() => {
     if (!user) return;
     const fetchBookings = async () => {
       setLoading(true);
 
+      // There is no way to filter by assigned pandit anymore
+      // We'll fetch pending bookings, but this logic needs UX consideration.
       const { data: bookingsData, error } = await supabase
         .from("bookings")
-        .select("*, profiles:customer_id (*), services:service_id (*)")
-        .eq("pandit_id", user.id)
+        .select("*, profiles:created_by (*), services:service_id (*)")
         .eq("status", "pending")
         .order("created_at", { ascending: false });
 
@@ -122,7 +118,6 @@ export default function DashboardPandit() {
 
       const mapped = bookingsData.map((row: any) => ({
         id: row.id,
-        customer_id: row.customer_id,
         service_id: row.service_id,
         tentative_date: row.tentative_date,
         status: row.status,
@@ -137,23 +132,21 @@ export default function DashboardPandit() {
     fetchBookings();
   }, [user, updatingId]);
 
-  // Accept/Reject
+  // Accept/Reject - still update by bookingId
   const handleBookingAction = async (bookingId: string, action: "accept" | "reject") => {
     setUpdatingId(bookingId);
     await supabase
       .from("bookings")
       .update({ status: action === "accept" ? "confirmed" : "cancelled" })
       .eq("id", bookingId);
-    setUpdatingId(null); // triggers refetch
+    setUpdatingId(null);
   };
 
-  // Sign out
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
   };
 
-  // Edit
   const handleProfileUpdated = (updated: Profile) => {
     setProfile(updated);
     toast({ title: "Profile updated" });
@@ -179,7 +172,6 @@ export default function DashboardPandit() {
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Pandit</span>
-        {/* UUID display with copy button */}
         <div className="flex items-center gap-1 mt-2">
           <span className="text-[11px] text-gray-400 font-mono select-all">UUID: {profile.id}</span>
           <CopyToClipboardButton value={profile.id} />
@@ -195,7 +187,6 @@ export default function DashboardPandit() {
       </div>
       <div className="flex-1 max-w-3xl">
         <h1 className="text-2xl font-bold mb-2">Pandit Dashboard</h1>
-        {/* Dashboard toggles section */}
         <div className="flex flex-wrap gap-4 mb-4">
           <div className="flex flex-col bg-green-50 border border-green-200 rounded-lg px-4 py-3 w-[175px] items-start justify-center shadow">
             <span className="text-xs font-medium text-green-950 mb-1">Accepted Poojas</span>
@@ -213,7 +204,7 @@ export default function DashboardPandit() {
           <>
             {pendingBookings.length === 0 ? (
               <div className="text-gray-500 mt-8">
-                No pending booking requests assigned to you.
+                No pending booking requests.
               </div>
             ) : (
               <div className="space-y-5">

@@ -16,7 +16,6 @@ export type Database = {
           created_by: string
           id: string
           invoice_url: string | null
-          pandit_id: string | null
           service_id: number | null
           status: string | null
           tentative_date: string | null
@@ -28,7 +27,6 @@ export type Database = {
           created_by?: string
           id?: string
           invoice_url?: string | null
-          pandit_id?: string | null
           service_id?: number | null
           status?: string | null
           tentative_date?: string | null
@@ -40,7 +38,6 @@ export type Database = {
           created_by?: string
           id?: string
           invoice_url?: string | null
-          pandit_id?: string | null
           service_id?: number | null
           status?: string | null
           tentative_date?: string | null
