@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -91,11 +90,9 @@ export default function CredentialsPage() {
       service_id: serviceIdNum,
       tentative_date: format(data.fromDate, "yyyy-MM-dd"),
       status: "pending",
-      invoice_url: JSON.stringify({
-        location: data.location,
-        address: data.address,
-      }),
-      // created_by: not needed, will be set by DEFAULT
+      location: data.location,
+      address: data.address,
+      // invoice_url: not used for location/address anymore
     };
     console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
@@ -161,4 +158,3 @@ export default function CredentialsPage() {
     </div>
   );
 }
-
