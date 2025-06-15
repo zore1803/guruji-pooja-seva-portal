@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { format } from "date-fns";
 import { Button } from "@/components/ui/button";
@@ -33,9 +32,10 @@ const defaultValues: CredentialsFormValues = {
 type Props = {
   onSubmit: (data: CredentialsFormValues) => Promise<void> | void;
   loading: boolean;
+  serviceId?: number | string; // NEW
 };
 
-export default function CredentialsForm({ onSubmit, loading }: Props) {
+export default function CredentialsForm({ onSubmit, loading, serviceId }: Props) {
   const form = useForm<CredentialsFormValues>({
     defaultValues,
     mode: "onTouched",
@@ -44,6 +44,22 @@ export default function CredentialsForm({ onSubmit, loading }: Props) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-7">
+        {/* Service ID field, read-only */}
+        {serviceId && (
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Service ID
+            </label>
+            <input
+              type="text"
+              value={serviceId}
+              readOnly
+              className="w-full border bg-gray-100 rounded px-3 py-2 text-sm cursor-not-allowed text-gray-500"
+              tabIndex={-1}
+            />
+          </div>
+        )}
+
         <div className="flex flex-col md:flex-row gap-6">
           <FormField
             control={form.control}

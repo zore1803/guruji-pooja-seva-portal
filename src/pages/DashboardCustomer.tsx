@@ -78,11 +78,8 @@ export default function DashboardCustomer() {
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Customer</span>
-        {/* UUID display with copy button */}
-        <div className="flex items-center gap-1 mt-2">
-          <span className="text-[11px] text-gray-400 font-mono select-all">UUID: {profile.id}</span>
-          <CopyToClipboardButton value={profile.id} />
-        </div>
+        {/* UUID display with copy button - REMOVE below block */}
+        {/* Removed UUID display for the user */}
         <div className="mt-4 flex w-full flex-col gap-2">
           <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
             <Edit className="w-4 h-4" /> Edit Profile

@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -137,7 +136,8 @@ export default function CredentialsPage() {
           Select Dates &amp; Location
         </h1>
         <ProfileSummary profile={profile} loading={loadingProfile} />
-        <CredentialsForm onSubmit={handleSubmit} loading={loading} />
+        {/* Pass serviceId prop */}
+        <CredentialsForm onSubmit={handleSubmit} loading={loading} serviceId={id} />
       </div>
     </div>
   );
