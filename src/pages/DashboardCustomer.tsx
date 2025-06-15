@@ -1,3 +1,4 @@
+
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,7 +9,6 @@ import EditCustomerProfileModal from "@/components/EditCustomerProfileModal";
 import { LogOut, Edit } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
 import { format } from "date-fns";
-import CopyToClipboardButton from "@/components/CopyToClipboardButton";
 
 // Define booking display type
 type Booking = {
@@ -34,28 +34,25 @@ export default function DashboardCustomer() {
       navigate("/auth?role=customer");
       return;
     }
-    // Robustly wait for profile; new signups are guaranteed an automatic profile row.
     let isMounted = true;
+    // Avoid infinite recursion by not assigning type to data directly
     async function fetchProfile() {
       let tries = 0;
       while (tries < 5) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) {
-          if (isMounted) setProfile(data);
+          if (isMounted) setProfile(data as any);
           return;
         }
-        // Profile might not exist immediately after new signup; wait then retry
         await new Promise(res => setTimeout(res, 400));
         tries += 1;
       }
-      // After 5 tries (~2 seconds), show null (should never hit this unless something is wrong)
       if (isMounted) setProfile(null);
     }
     fetchProfile();
     return () => { isMounted = false; };
   }, [user, navigate]);
 
-  // Fetch pending bookings for this user (now by created_by)
   useEffect(() => {
     if (!user) return;
     setLoadingBookings(true);
@@ -66,17 +63,15 @@ export default function DashboardCustomer() {
       .eq("status", "pending")
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
-        setBookings(data || []);
+        setBookings(data as Booking[] || []);
         setLoadingBookings(false);
       });
   }, [user]);
 
-  // Refetch profile after update
   const handleProfileUpdated = (updated: any) => {
     setProfile(updated);
   };
 
-  // Logout
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
@@ -85,7 +80,6 @@ export default function DashboardCustomer() {
   if (!user) {
     return <div className="flex items-center justify-center py-10">Loading...</div>;
   }
-  // Just show spinner for new signups while their profile auto-inserts
   if (!profile) {
     return (
       <div className="flex items-center justify-center py-10 text-gray-500 animate-pulse">
@@ -103,8 +97,6 @@ export default function DashboardCustomer() {
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Customer</span>
-        {/* UUID display with copy button - REMOVE below block */}
-        {/* Removed UUID display for the user */}
         <div className="mt-4 flex w-full flex-col gap-2">
           <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
             <Edit className="w-4 h-4" /> Edit Profile
@@ -117,7 +109,6 @@ export default function DashboardCustomer() {
       <div className="flex-1 w-full">
         <h1 className="text-2xl font-bold mb-2">Customer Dashboard</h1>
         <p>Browse and book pooja services below, or manage your upcoming bookings.</p>
-        {/* Book Now Button above Pending Bookings, aligned left */}
         <div className="flex justify-start my-4">
           <Button
             variant="default"
@@ -127,7 +118,6 @@ export default function DashboardCustomer() {
             Book Now
           </Button>
         </div>
-        {/* Pending Bookings List */}
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-2">Pending Bookings</h2>
           {loadingBookings ? (
