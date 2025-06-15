@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -16,6 +17,11 @@ export default function CredentialsPage() {
   const [loading, setLoading] = React.useState(false);
 
   const handleSubmit = async (data: CredentialsFormValues) => {
+    // Add debug logs for all variables about to be inserted
+    console.log('[Booking DEBUG] Params:', { raw_param_id: id, typeof_param_id: typeof id });
+    console.log('[Booking DEBUG] User:', { id: user?.id, typeof_user_id: typeof user?.id });
+    console.log('[Booking DEBUG] Payload from form:', data);
+
     if (!user || !user.id) {
       toast({
         title: "You must be logged in!",
@@ -24,24 +30,29 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Add debugging logs for user.id and id params
-    console.log('SUBMIT booking:', {
-      param_id: id,
-      user_id: user.id,
-      typeof_user_id: typeof user.id,
-    });
-
-    // Validate that id is a number (service_id)
-    if (!id || isNaN(Number(id))) {
+    if (!id) {
       toast({
         title: "Invalid Service",
-        description: "No valid service ID found.",
+        description: "No service ID found.",
       });
       return;
     }
+    // Ensure we convert the id param to number safely
+    const serviceIdNum = Number(id);
+    if (isNaN(serviceIdNum)) {
+      toast({
+        title: "Invalid Service",
+        description: "Service ID is not a valid number.",
+      });
+      return;
+    }
+    // Sanity log
+    console.log('[Booking DEBUG] Parsed service_id (must be int):', { value: serviceIdNum, type: typeof serviceIdNum });
 
-    // Validate that user.id is a proper uuid string (basic check: 36 chars, 4 hyphens)
-    const isUUID = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user.id);
+    // Validate user.id as uuid
+    const isUUID = typeof user.id === "string" &&
+      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user.id);
+
     if (!isUUID) {
       toast({
         title: "Invalid Session",
@@ -57,12 +68,14 @@ export default function CredentialsPage() {
       });
       return;
     }
+
     setLoading(true);
 
+    // Ensure the service exists before attempting to insert
     const { data: existingService, error: serviceError } = await supabase
       .from("services")
       .select("id")
-      .eq("id", Number(id))
+      .eq("id", serviceIdNum)
       .maybeSingle();
 
     if (serviceError || !existingService) {
@@ -74,37 +87,45 @@ export default function CredentialsPage() {
       return;
     }
 
-    // More detailed log before insert
-    console.log("Inserting booking with:", {
-      service_id: Number(id),
+    // Logging just before insert
+    const bookingPayload = {
+      service_id: serviceIdNum,
       customer_id: user.id,
       tentative_date: format(data.fromDate, "yyyy-MM-dd"),
       status: "pending",
-      invoice_url: { location: data.location, address: data.address }
-    });
+      invoice_url: JSON.stringify({
+        location: data.location,
+        address: data.address,
+      }),
+    };
+    console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
-    const { error } = await supabase.from("bookings").insert([
-      {
-        service_id: Number(id),
-        customer_id: user.id,
-        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
-        status: "pending",
-        invoice_url: JSON.stringify({
-          location: data.location,
-          address: data.address,
-        }),
-      },
-    ]);
+    // Double check types
+    if (
+      typeof bookingPayload.service_id !== "number" ||
+      typeof bookingPayload.customer_id !== "string"
+    ) {
+      toast({
+        title: "Type error!",
+        description: "Failed to assemble booking record (type mismatch).",
+      });
+      setLoading(false);
+      return;
+    }
+
+    const { error } = await supabase.from("bookings").insert([bookingPayload]);
     setLoading(false);
+
     if (error) {
       toast({
         title: "Error submitting booking.",
         description: error.message,
       });
       // Log the error for debugging
-      console.log('BOOKING INSERT ERROR:', error);
+      console.log('[BOOKING INSERT ERROR]:', error);
       return;
     }
+
     toast({
       title: "Credentials Submitted",
       description: (
