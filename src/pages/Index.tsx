@@ -30,6 +30,44 @@ const Index = () => (
         />
       </div>
     </section>
+
+    {/* How to Book a Pooja Section */}
+    <section className="py-12 bg-gradient-to-r from-orange-100 to-orange-200">
+      <div className="max-w-5xl mx-auto px-6">
+        <h2 className="text-3xl font-bold text-orange-700 mb-8 text-center font-playfair">How to Book Your Pooja</h2>
+        <div className="grid md:grid-cols-4 gap-6">
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center transform hover:scale-105 transition-transform">
+            <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">1</span>
+            </div>
+            <h3 className="font-bold text-lg text-orange-600 mb-2">Choose Your Pooja</h3>
+            <p className="text-gray-700 text-sm">Browse our extensive list of Vedic rituals and select the pooja that suits your needs.</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center transform hover:scale-105 transition-transform">
+            <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">2</span>
+            </div>
+            <h3 className="font-bold text-lg text-orange-600 mb-2">Select Date & Time</h3>
+            <p className="text-gray-700 text-sm">Pick your preferred date and time for the ceremony that works best for you.</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center transform hover:scale-105 transition-transform">
+            <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">3</span>
+            </div>
+            <h3 className="font-bold text-lg text-orange-600 mb-2">Book & Pay</h3>
+            <p className="text-gray-700 text-sm">Complete your booking with secure payment and receive instant confirmation.</p>
+          </div>
+          <div className="bg-white rounded-lg p-6 shadow-lg text-center transform hover:scale-105 transition-transform">
+            <div className="w-16 h-16 bg-orange-600 rounded-full flex items-center justify-center mx-auto mb-4">
+              <span className="text-white font-bold text-xl">4</span>
+            </div>
+            <h3 className="font-bold text-lg text-orange-600 mb-2">Get Blessed</h3>
+            <p className="text-gray-700 text-sm">Our verified pandit will perform the ritual and provide you with divine blessings.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section className="py-10 bg-white border-t mt-10">
       <div className="max-w-4xl mx-auto px-6">
         <h2 className="text-2xl font-bold text-orange-700 mb-6 font-playfair">Why Choose E-GURUJI?</h2>
