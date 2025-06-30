@@ -79,10 +79,22 @@ const Navbar = () => {
                   <LogIn size={16} />
                   Pandit Login
                 </Link>
+                <Link
+                  to="/auth?role=admin"
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-2 text-sm bg-red-50 px-4 py-3 rounded-lg hover:bg-red-100 text-red-700"
+                >
+                  <LogIn size={16} />
+                  Admin Login
+                </Link>
               </div>
             ) : (
               <Link
-                to={location.pathname.includes("pandit") ? "/dashboard-pandit" : "/dashboard-customer"}
+                to={
+                  location.pathname.includes("admin") ? "/dashboard-admin" :
+                  location.pathname.includes("pandit") ? "/dashboard-pandit" : 
+                  "/dashboard-customer"
+                }
                 onClick={() => setIsOpen(false)}
                 className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"
               >
@@ -144,10 +156,18 @@ const Navbar = () => {
               <LogIn size={16} />
               Pandit Login
             </Link>
+            <Link to="/auth?role=admin" className="flex gap-1 items-center text-sm hover:text-red-700 bg-red-50 px-3 py-2 rounded-md text-red-600">
+              <LogIn size={16} />
+              Admin
+            </Link>
           </>
         ) : (
           user && !isMobile && (
-            <Link to={location.pathname.includes("pandit") ? "/dashboard-pandit" : "/dashboard-customer"}>
+            <Link to={
+              location.pathname.includes("admin") ? "/dashboard-admin" :
+              location.pathname.includes("pandit") ? "/dashboard-pandit" : 
+              "/dashboard-customer"
+            }>
               <Avatar>
                 <AvatarImage src={user.user_metadata?.profile_image_url} alt={user.user_metadata?.name || "avatar"} />
                 <AvatarFallback>{user.user_metadata?.name?.charAt(0)?.toUpperCase() || "A"}</AvatarFallback>

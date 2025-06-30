@@ -1,4 +1,3 @@
-
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -78,36 +77,45 @@ export default function DashboardPandit() {
   useEffect(() => {
     if (!user) return;
     async function fetchInfo() {
-      // Count accepted bookings - cannot filter by pandit_id anymore
-      // We'll leave the accepted count at 0 since it's not meaningful without pandit_id, or re-design logic if needed.
-      setAcceptedCount(0);
-      // Fetch earnings - leave as before, but payments should not reference bookings.pandit_id anymore
-      const { data: payments, error: paymentsErr } = await supabase
-        .from("payments")
+      // Count accepted bookings assigned to this pandit
+      const { data: acceptedBookings } = await supabase
+        .from("bookings")
         .select("*")
-        .eq("status", "paid")
-        .eq("customer_id", user.id); // fallback, but unsure if meaningful
+        .eq("pandit_id", user.id)
+        .eq("status", "confirmed");
+      
+      setAcceptedCount(acceptedBookings?.length || 0);
+      
+      // Fetch earnings - this should be calculated from completed bookings
+      const { data: completedBookings } = await supabase
+        .from("bookings")
+        .select("*, services!inner(*)")
+        .eq("pandit_id", user.id)
+        .eq("status", "completed");
+      
       let earningTotal = 0;
-      if (payments && Array.isArray(payments)) {
-        earningTotal = payments.reduce((sum, p) => sum + (p.amount || 0), 0);
+      if (completedBookings && Array.isArray(completedBookings)) {
+        earningTotal = completedBookings.reduce((sum, booking: any) => {
+          return sum + (booking.services?.price || 0);
+        }, 0);
       }
       setEarnings(earningTotal);
     }
     fetchInfo();
   }, [user, updatingId]);
 
-  // Fetch pending bookings - removing filter by pandit_id
+  // Fetch pending bookings assigned to this pandit
   useEffect(() => {
     if (!user) return;
     const fetchBookings = async () => {
       setLoading(true);
 
-      // There is no way to filter by assigned pandit anymore
-      // We'll fetch pending bookings, but this logic needs UX consideration.
+      // Fetch bookings assigned to this pandit
       const { data: bookingsData, error } = await supabase
         .from("bookings")
         .select("*, profiles:created_by (*), services:service_id (*)")
-        .eq("status", "pending")
+        .eq("pandit_id", user.id)
+        .in("status", ["assigned", "pending"])
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -132,14 +140,35 @@ export default function DashboardPandit() {
     fetchBookings();
   }, [user, updatingId]);
 
-  // Accept/Reject - still update by bookingId
+  // Accept/Reject - update booking status
   const handleBookingAction = async (bookingId: string, action: "accept" | "reject") => {
     setUpdatingId(bookingId);
-    await supabase
+    const newStatus = action === "accept" ? "confirmed" : "cancelled";
+    
+    const { error } = await supabase
       .from("bookings")
-      .update({ status: action === "accept" ? "confirmed" : "cancelled" })
+      .update({ status: newStatus })
       .eq("id", bookingId);
+    
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update booking status",
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Success",
+        description: `Booking ${action}ed successfully`,
+      });
+    }
+    
     setUpdatingId(null);
+    
+    // Refresh the bookings list
+    setTimeout(() => {
+      window.location.reload();
+    }, 1000);
   };
 
   const handleLogout = async () => {
@@ -197,14 +226,14 @@ export default function DashboardPandit() {
             <span className="text-2xl font-bold text-blue-700">₹{earnings}</span>
           </div>
         </div>
-        <p className="mb-4">Manage your pooja booking requests below.</p>
+        <p className="mb-4">Manage your assigned pooja booking requests below.</p>
         {loading ? (
           <div className="py-6">Fetching bookings...</div>
         ) : (
           <>
             {pendingBookings.length === 0 ? (
               <div className="text-gray-500 mt-8">
-                No pending booking requests.
+                No pending booking requests assigned to you.
               </div>
             ) : (
               <div className="space-y-5">
@@ -241,14 +270,14 @@ export default function DashboardPandit() {
                       </div>
                       <div className="text-sm">
                         <span className="font-medium">Date:</span>{" "}
-                        {booking.tentative_date || (
+                        {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : (
                           <span className="italic text-gray-400">
                             Not specified
                           </span>
                         )}
                       </div>
                       <div className="text-xs text-orange-700 mt-1">
-                        {/* Show error or status if needed */}
+                        Status: {booking.status === "assigned" ? "Assigned to you" : "Pending"}
                       </div>
                     </div>
                     <div className="flex flex-col gap-2 min-w-[110px]">

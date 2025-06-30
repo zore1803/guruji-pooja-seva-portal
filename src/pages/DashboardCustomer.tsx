@@ -58,13 +58,18 @@ export default function DashboardCustomer() {
     setLoadingBookings(true);
     supabase
       .from("bookings")
-      .select("*")
+      .select("*, services:service_id (*), assigned_pandit:pandit_id (*)")
       .eq("created_by", user.id)
-      .eq("status", "pending")
+      .in("status", ["pending", "assigned", "confirmed", "completed"])
       .order("created_at", { ascending: false })
       .then(({ data, error }) => {
         if (Array.isArray(data)) {
-          setBookings(data);
+          const mapped = data.map((row: any) => ({
+            ...row,
+            service: row.services,
+            assigned_pandit: row.assigned_pandit,
+          }));
+          setBookings(mapped);
         } else {
           setBookings([]);
         }
@@ -112,7 +117,7 @@ export default function DashboardCustomer() {
       </div>
       <div className="flex-1 w-full">
         <h1 className="text-2xl font-bold mb-2">Customer Dashboard</h1>
-        <p>Browse and book pooja services below, or manage your upcoming bookings.</p>
+        <p>Browse and book pooja services below, or manage your bookings.</p>
         <div className="flex justify-start my-4">
           <Button
             variant="default"
@@ -123,46 +128,68 @@ export default function DashboardCustomer() {
           </Button>
         </div>
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">Pending Bookings</h2>
+          <h2 className="text-lg font-semibold mb-2">Your Bookings</h2>
           {loadingBookings ? (
             <div className="text-muted-foreground">Loading your bookings...</div>
           ) : bookings.length === 0 ? (
-            <div className="text-muted-foreground">No pending bookings found.</div>
+            <div className="text-muted-foreground">No bookings found.</div>
           ) : (
             <Table>
-              <TableCaption>Pending bookings you have requested</TableCaption>
+              <TableCaption>Your booking history and current requests</TableCaption>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Dates</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Address</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>Assigned Pandit</TableHead>
                   <TableHead>Requested At</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {bookings.map((b) => {
-                  let location = "-";
-                  let address = "-";
-                  if (b.invoice_url) {
-                    try {
-                      const parsed = JSON.parse(b.invoice_url);
-                      location = parsed.location || "-";
-                      address = parsed.address || "-";
-                    } catch {}
-                  }
+                  let location = b.location || "-";
+                  let address = b.address || "-";
+                  
+                  const getStatusColor = (status: string) => {
+                    switch (status) {
+                      case "pending": return "bg-orange-100 text-orange-800";
+                      case "assigned": return "bg-blue-100 text-blue-800";
+                      case "confirmed": return "bg-green-100 text-green-800";
+                      case "completed": return "bg-purple-100 text-purple-800";
+                      case "cancelled": return "bg-red-100 text-red-800";
+                      default: return "bg-gray-100 text-gray-800";
+                    }
+                  };
+
                   return (
                     <TableRow key={b.id}>
+                      <TableCell className="font-medium">
+                        {b.service?.name || "Unknown Service"}
+                      </TableCell>
                       <TableCell>
                         {b.tentative_date ? format(new Date(b.tentative_date), "PPP") : "--"}
                       </TableCell>
                       <TableCell>{location}</TableCell>
                       <TableCell>{address}</TableCell>
                       <TableCell>
-                        <span className="inline-block px-2 rounded bg-orange-100 text-orange-800">{b.status === "pending" ? "Booking Pending" : b.status}</span>
+                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(b.status || "pending")}`}>
+                          {b.status?.charAt(0).toUpperCase() + b.status?.slice(1) || "Pending"}
+                        </span>
                       </TableCell>
                       <TableCell>
-                        {b.created_at ? format(new Date(b.created_at), "PPPp") : "--"}
+                        {b.assigned_pandit ? (
+                          <div className="text-sm">
+                            <div className="font-medium">{b.assigned_pandit.name}</div>
+                            <div className="text-gray-500 text-xs">{b.assigned_pandit.expertise || "Pandit"}</div>
+                          </div>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Not assigned</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        {b.created_at ? format(new Date(b.created_at), "PPp") : "--"}
                       </TableCell>
                     </TableRow>
                   );

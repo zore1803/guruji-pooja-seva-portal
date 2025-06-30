@@ -12,12 +12,16 @@ export type Database = {
       bookings: {
         Row: {
           address: string | null
+          admin_notes: string | null
+          assigned_at: string | null
+          completed_at: string | null
           confirmed_date: string | null
           created_at: string
           created_by: string
           id: string
           invoice_url: string | null
           location: string | null
+          pandit_id: string | null
           service_id: number | null
           status: string | null
           tentative_date: string | null
@@ -25,12 +29,16 @@ export type Database = {
         }
         Insert: {
           address?: string | null
+          admin_notes?: string | null
+          assigned_at?: string | null
+          completed_at?: string | null
           confirmed_date?: string | null
           created_at?: string
           created_by?: string
           id?: string
           invoice_url?: string | null
           location?: string | null
+          pandit_id?: string | null
           service_id?: number | null
           status?: string | null
           tentative_date?: string | null
@@ -38,12 +46,16 @@ export type Database = {
         }
         Update: {
           address?: string | null
+          admin_notes?: string | null
+          assigned_at?: string | null
+          completed_at?: string | null
           confirmed_date?: string | null
           created_at?: string
           created_by?: string
           id?: string
           invoice_url?: string | null
           location?: string | null
+          pandit_id?: string | null
           service_id?: number | null
           status?: string | null
           tentative_date?: string | null

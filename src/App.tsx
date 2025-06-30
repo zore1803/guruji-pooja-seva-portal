@@ -9,6 +9,7 @@ import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/Auth";
 import DashboardPandit from "./pages/DashboardPandit";
 import DashboardCustomer from "./pages/DashboardCustomer";
+import DashboardAdmin from "./pages/DashboardAdmin";
 import ServicesPage from "./pages/Services";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -33,6 +34,7 @@ const App = () => (
           <Route path="/auth" element={<AuthPage />} />
           <Route path="/dashboard-pandit" element={<DashboardPandit />} />
           <Route path="/dashboard-customer" element={<DashboardCustomer />} />
+          <Route path="/dashboard-admin" element={<DashboardAdmin />} />
           <Route path="/services" element={<ServicesPage />} />
           <Route path="/product/:id" element={<PoojaDetailPage />} />
           <Route path="/credentials/:id" element={<CredentialsPage />} />
