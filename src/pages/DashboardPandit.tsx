@@ -3,65 +3,35 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, LogOut, Edit } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { useNavigate } from "react-router-dom";
 import EditPanditProfileModal from "@/components/EditPanditProfileModal";
 import PanditCompletedPoojasTable from "@/components/PanditCompletedPoojasTable";
-import CopyToClipboardButton from "@/components/CopyToClipboardButton";
-
-type Profile = {
-  id: string;
-  name: string;
-  email: string;
-  user_type: string;
-  profile_image_url?: string | null;
-  expertise?: string | null;
-  address?: string | null;
-};
-
-type Service = {
-  id: number;
-  name: string;
-  description: string;
-};
-
-type Booking = {
-  id: string;
-  // removed pandit_id
-  service_id: number;
-  tentative_date: string | null;
-  status: string;
-  customer_profile?: Profile | null;
-  service?: Service | null;
-};
-
-type Payment = {
-  id: string;
-  booking_id: string;
-  amount: number;
-  status: string;
-};
+import { LogOut, Edit, CheckCircle, X } from "lucide-react";
+import { toast } from "@/hooks/use-toast";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
+import { format } from "date-fns";
 
 export default function DashboardPandit() {
   const { user } = useSession();
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [pendingBookings, setPendingBookings] = useState<Booking[]>([]);
-  const [acceptedCount, setAcceptedCount] = useState<number>(0);
-  const [earnings, setEarnings] = useState<number>(0);
-  const [loading, setLoading] = useState(true);
-  const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const navigate = useNavigate();
+  const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
+  const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
-  // Fetch Pandit Profile
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      navigate("/auth?role=pandit");
+      return;
+    }
     let isMounted = true;
+    // Avoid infinite recursion by not assigning type to data directly
     async function fetchProfile() {
       let tries = 0;
       while (tries < 5) {
         const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
         if (data) {
-          if (isMounted) setProfile(data);
+          if (isMounted) setProfile(data as any);
           return;
         }
         await new Promise(res => setTimeout(res, 400));
@@ -71,114 +41,97 @@ export default function DashboardPandit() {
     }
     fetchProfile();
     return () => { isMounted = false; };
-  }, [user]);
+  }, [user, navigate]);
 
-  // Fetch summary (accepted bookings + earnings)
   useEffect(() => {
     if (!user) return;
-    async function fetchInfo() {
-      // Count accepted bookings assigned to this pandit
-      const { data: acceptedBookings } = await supabase
+    
+    const fetchAssignedBookings = async () => {
+      setLoadingBookings(true);
+      const { data, error } = await supabase
         .from("bookings")
-        .select("*")
+        .select(`
+          *,
+          profiles:created_by (*),
+          services:service_id (*)
+        `)
         .eq("pandit_id", user.id)
-        .eq("status", "confirmed");
-      
-      setAcceptedCount(acceptedBookings?.length || 0);
-      
-      // Fetch earnings - this should be calculated from completed bookings
-      const { data: completedBookings } = await supabase
-        .from("bookings")
-        .select("*, services!inner(*)")
-        .eq("pandit_id", user.id)
-        .eq("status", "completed");
-      
-      let earningTotal = 0;
-      if (completedBookings && Array.isArray(completedBookings)) {
-        earningTotal = completedBookings.reduce((sum, booking: any) => {
-          return sum + (booking.services?.price || 0);
-        }, 0);
-      }
-      setEarnings(earningTotal);
-    }
-    fetchInfo();
-  }, [user, updatingId]);
-
-  // Fetch pending bookings assigned to this pandit
-  useEffect(() => {
-    if (!user) return;
-    const fetchBookings = async () => {
-      setLoading(true);
-
-      // Fetch bookings assigned to this pandit
-      const { data: bookingsData, error } = await supabase
-        .from("bookings")
-        .select("*, profiles:created_by (*), services:service_id (*)")
-        .eq("pandit_id", user.id)
-        .in("status", ["assigned", "pending"])
+        .in("status", ["assigned", "confirmed", "completed"])
         .order("created_at", { ascending: false });
 
-      if (error) {
-        setPendingBookings([]);
-        setLoading(false);
-        return;
+      if (data) {
+        const mapped = data.map((row: any) => ({
+          ...row,
+          customer_profile: row.profiles,
+          service: row.services,
+        }));
+        setAssignedBookings(mapped);
       }
-
-      const mapped = bookingsData.map((row: any) => ({
-        id: row.id,
-        service_id: row.service_id,
-        tentative_date: row.tentative_date,
-        status: row.status,
-        customer_profile: row.profiles,
-        service: row.services,
-      })) as Booking[];
-
-      setPendingBookings(mapped);
-      setLoading(false);
+      setLoadingBookings(false);
     };
 
-    fetchBookings();
-  }, [user, updatingId]);
+    fetchAssignedBookings();
+  }, [user]);
 
-  // Accept/Reject - update booking status
-  const handleBookingAction = async (bookingId: string, action: "accept" | "reject") => {
-    setUpdatingId(bookingId);
-    const newStatus = action === "accept" ? "confirmed" : "cancelled";
-    
+  const handleAcceptBooking = async (bookingId: string) => {
     const { error } = await supabase
       .from("bookings")
-      .update({ status: newStatus })
+      .update({ status: "confirmed" })
       .eq("id", bookingId);
-    
+
     if (error) {
       toast({
         title: "Error",
-        description: "Failed to update booking status",
+        description: "Failed to accept booking",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: `Booking ${action}ed successfully`,
-      });
+      return;
     }
-    
-    setUpdatingId(null);
-    
-    // Refresh the bookings list
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+
+    toast({
+      title: "Success",
+      description: "Booking accepted successfully",
+    });
+
+    // Refresh bookings
+    window.location.reload();
+  };
+
+  const handleRejectBooking = async (bookingId: string) => {
+    const { error } = await supabase
+      .from("bookings")
+      .update({ 
+        status: "cancelled",
+        pandit_id: null,
+        assigned_at: null
+      })
+      .eq("id", bookingId);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: "Failed to reject booking",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    toast({
+      title: "Success",
+      description: "Booking rejected successfully",
+    });
+
+    // Refresh bookings
+    window.location.reload();
+  };
+
+  const handleProfileUpdated = (updated: any) => {
+    setProfile(updated);
   };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
     window.location.href = "/";
-  };
-
-  const handleProfileUpdated = (updated: Profile) => {
-    setProfile(updated);
-    toast({ title: "Profile updated" });
   };
 
   if (!user) {
@@ -194,17 +147,13 @@ export default function DashboardPandit() {
 
   return (
     <div className="pt-8 px-5 flex-col md:flex-row flex items-start gap-8">
-      <div className="w-[210px] flex flex-col items-center">
+      <div className="w-[190px] flex flex-col items-center">
         <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={profile.profile_image_url || undefined} alt={profile.name} />
+          <AvatarImage src={profile.profile_image_url} alt={profile.name} />
           <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Pandit</span>
-        <div className="flex items-center gap-1 mt-2">
-          <span className="text-[11px] text-gray-400 font-mono select-all">UUID: {profile.id}</span>
-          <CopyToClipboardButton value={profile.id} />
-        </div>
         <div className="mt-4 flex w-full flex-col gap-2">
           <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
             <Edit className="w-4 h-4" /> Edit Profile
@@ -214,111 +163,107 @@ export default function DashboardPandit() {
           </Button>
         </div>
       </div>
-      <div className="flex-1 max-w-3xl">
+      <div className="flex-1 w-full">
         <h1 className="text-2xl font-bold mb-2">Pandit Dashboard</h1>
-        <div className="flex flex-wrap gap-4 mb-4">
-          <div className="flex flex-col bg-green-50 border border-green-200 rounded-lg px-4 py-3 w-[175px] items-start justify-center shadow">
-            <span className="text-xs font-medium text-green-950 mb-1">Accepted Poojas</span>
-            <span className="text-2xl font-bold text-green-700">{acceptedCount}</span>
-          </div>
-          <div className="flex flex-col bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 w-[175px] items-start justify-center shadow">
-            <span className="text-xs font-medium text-blue-950 mb-1">Earnings</span>
-            <span className="text-2xl font-bold text-blue-700">₹{earnings}</span>
-          </div>
-        </div>
-        <p className="mb-4">Manage your assigned pooja booking requests below.</p>
-        {loading ? (
-          <div className="py-6">Fetching bookings...</div>
-        ) : (
-          <>
-            {pendingBookings.length === 0 ? (
-              <div className="text-gray-500 mt-8">
-                No pending booking requests assigned to you.
-              </div>
-            ) : (
-              <div className="space-y-5">
-                {pendingBookings.map((booking) => (
-                  <div
-                    key={booking.id}
-                    className="rounded-lg border p-4 flex items-center gap-5 shadow-sm bg-white"
-                  >
-                    <Avatar>
-                      <AvatarImage
-                        src={
-                          booking.customer_profile?.profile_image_url || undefined
-                        }
-                        alt={
-                          booking.customer_profile?.name || "Customer"
-                        }
-                      />
-                      <AvatarFallback>
-                        {booking.customer_profile?.name
-                          ?.charAt(0)
-                          ?.toUpperCase() ?? "C"}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="text-base font-semibold">
-                        {booking.customer_profile?.name}
+        <p>Manage your assigned bookings and profile information.</p>
+        
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-4">Assigned Bookings</h2>
+          {loadingBookings ? (
+            <div className="text-center text-gray-500">Loading bookings...</div>
+          ) : assignedBookings.length === 0 ? (
+            <div className="text-center text-gray-500">No assigned bookings found</div>
+          ) : (
+            <Table>
+              <TableCaption>Your assigned bookings</TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Service</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Location</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Assigned At</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {assignedBookings.map((booking) => (
+                  <TableRow key={booking.id}>
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{booking.customer_profile?.name}</div>
+                        <div className="text-sm text-gray-500">{booking.customer_profile?.email}</div>
                       </div>
-                      <div className="text-sm text-gray-500 mb-1">
-                        {booking.customer_profile?.email}
+                    </TableCell>
+                    <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
+                    <TableCell>
+                      {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : "Not set"}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="text-sm">{booking.location || "Not specified"}</div>
+                        <div className="text-xs text-gray-500">{booking.address || ""}</div>
                       </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Service:</span>{" "}
-                        {booking.service?.name || "Unknown Service"}
-                      </div>
-                      <div className="text-sm">
-                        <span className="font-medium">Date:</span>{" "}
-                        {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : (
-                          <span className="italic text-gray-400">
-                            Not specified
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-xs text-orange-700 mt-1">
-                        Status: {booking.status === "assigned" ? "Assigned to you" : "Pending"}
-                      </div>
-                    </div>
-                    <div className="flex flex-col gap-2 min-w-[110px]">
-                      <Button
-                        size="sm"
-                        variant="default"
-                        className="bg-green-600 hover:bg-green-700 text-white"
-                        disabled={updatingId === booking.id}
-                        onClick={() =>
-                          handleBookingAction(booking.id, "accept")
-                        }
-                      >
-                        <Check className="mr-1 h-4 w-4" /> Accept
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="bg-red-600 hover:bg-red-700 text-white"
-                        disabled={updatingId === booking.id}
-                        onClick={() =>
-                          handleBookingAction(booking.id, "reject")
-                        }
-                      >
-                        <X className="mr-1 h-4 w-4" /> Reject
-                      </Button>
-                    </div>
-                  </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                        booking.status === "assigned" ? "bg-blue-100 text-blue-800" :
+                        booking.status === "confirmed" ? "bg-green-100 text-green-800" :
+                        booking.status === "completed" ? "bg-purple-100 text-purple-800" :
+                        "bg-gray-100 text-gray-800"
+                      }`}>
+                        {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {booking.assigned_at ? format(new Date(booking.assigned_at), "PPp") : "--"}
+                    </TableCell>
+                    <TableCell>
+                      {booking.status === "assigned" && (
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            onClick={() => handleAcceptBooking(booking.id)}
+                            className="bg-green-600 hover:bg-green-700"
+                          >
+                            <CheckCircle className="w-4 h-4 mr-1" />
+                            Accept
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            onClick={() => handleRejectBooking(booking.id)}
+                          >
+                            <X className="w-4 h-4 mr-1" />
+                            Reject
+                          </Button>
+                        </div>
+                      )}
+                      {booking.status === "confirmed" && (
+                        <span className="text-green-600 text-sm">Accepted</span>
+                      )}
+                      {booking.status === "completed" && (
+                        <span className="text-purple-600 text-sm">Completed</span>
+                      )}
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </div>
-            )}
-          </>
-        )}
-        <PanditCompletedPoojasTable panditId={user.id} />
+              </TableBody>
+            </Table>
+          )}
+        </div>
 
-        <EditPanditProfileModal
-          open={openEditModal}
-          onClose={() => setOpenEditModal(false)}
-          profile={profile}
-          onProfileUpdated={handleProfileUpdated}
-        />
+        <div className="mt-8">
+          <PanditCompletedPoojasTable />
+        </div>
       </div>
+      <EditPanditProfileModal
+        open={openEditModal}
+        onClose={() => setOpenEditModal(false)}
+        profile={profile}
+        onProfileUpdated={handleProfileUpdated}
+      />
     </div>
   );
 }

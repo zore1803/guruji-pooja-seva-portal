@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Users, Calendar, CheckCircle, Clock } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
@@ -42,7 +41,6 @@ export default function DashboardAdmin() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [pandits, setPandits] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalBookings: 0,
@@ -76,7 +74,7 @@ export default function DashboardAdmin() {
     fetchAdminProfile();
   }, [user, navigate]);
 
-  // Fetch bookings and pandits
+  // Fetch bookings data for admin overview
   useEffect(() => {
     if (!profile || profile.user_type !== "admin") return;
 
@@ -93,12 +91,6 @@ export default function DashboardAdmin() {
           assigned_pandit:pandit_id (*)
         `)
         .order("created_at", { ascending: false });
-
-      // Fetch all pandits
-      const { data: panditsData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_type", "pandit");
 
       if (bookingsData) {
         const mapped = bookingsData.map((row: any) => ({
@@ -127,73 +119,11 @@ export default function DashboardAdmin() {
         });
       }
 
-      if (panditsData) {
-        setPandits(panditsData);
-      }
-
       setLoading(false);
     };
 
     fetchData();
   }, [profile]);
-
-  const handleAssignPandit = async (bookingId: string, panditId: string) => {
-    const { error } = await supabase
-      .from("bookings")
-      .update({ 
-        pandit_id: panditId,
-        assigned_at: new Date().toISOString(),
-        status: "assigned"
-      })
-      .eq("id", bookingId);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to assign pandit",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Pandit assigned successfully",
-    });
-
-    // Refresh data
-    window.location.reload();
-  };
-
-  const handleStatusChange = async (bookingId: string, newStatus: string) => {
-    const updates: any = { status: newStatus };
-    
-    if (newStatus === "completed") {
-      updates.completed_at = new Date().toISOString();
-    }
-
-    const { error } = await supabase
-      .from("bookings")
-      .update(updates)
-      .eq("id", bookingId);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update booking status",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    toast({
-      title: "Success",
-      description: "Booking status updated successfully",
-    });
-
-    // Refresh data
-    window.location.reload();
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -213,7 +143,7 @@ export default function DashboardAdmin() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-          <p className="text-gray-600">Manage bookings and system overview</p>
+          <p className="text-gray-600">Monitor bookings and system overview</p>
         </div>
         <div className="flex items-center gap-4">
           <Avatar className="w-10 h-10">
@@ -274,7 +204,8 @@ export default function DashboardAdmin() {
       {/* Bookings Table */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold">All Bookings</h2>
+          <h2 className="text-xl font-semibold">All Bookings Overview</h2>
+          <p className="text-sm text-gray-600">Monitor all bookings and their current status</p>
         </div>
         <div className="overflow-x-auto">
           {loading ? (
@@ -291,7 +222,7 @@ export default function DashboardAdmin() {
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Assigned Pandit</TableHead>
-                  <TableHead>Actions</TableHead>
+                  <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -314,21 +245,16 @@ export default function DashboardAdmin() {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <Select
-                        value={booking.status}
-                        onValueChange={(value) => handleStatusChange(booking.id, value)}
-                      >
-                        <SelectTrigger className="w-32">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="pending">Pending</SelectItem>
-                          <SelectItem value="assigned">Assigned</SelectItem>
-                          <SelectItem value="confirmed">Confirmed</SelectItem>
-                          <SelectItem value="completed">Completed</SelectItem>
-                          <SelectItem value="cancelled">Cancelled</SelectItem>
-                        </SelectContent>
-                      </Select>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                        booking.status === "pending" ? "bg-orange-100 text-orange-800" :
+                        booking.status === "assigned" ? "bg-blue-100 text-blue-800" :
+                        booking.status === "confirmed" ? "bg-green-100 text-green-800" :
+                        booking.status === "completed" ? "bg-purple-100 text-purple-800" :
+                        booking.status === "cancelled" ? "bg-red-100 text-red-800" :
+                        "bg-gray-100 text-gray-800"
+                      }`}>
+                        {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Unknown"}
+                      </span>
                     </TableCell>
                     <TableCell>
                       {booking.assigned_pandit ? (
@@ -336,18 +262,7 @@ export default function DashboardAdmin() {
                           {booking.assigned_pandit.name}
                         </div>
                       ) : (
-                        <Select onValueChange={(value) => handleAssignPandit(booking.id, value)}>
-                          <SelectTrigger className="w-40">
-                            <SelectValue placeholder="Assign Pandit" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            {pandits.map((pandit) => (
-                              <SelectItem key={pandit.id} value={pandit.id}>
-                                {pandit.name}
-                              </SelectItem>
-                            ))}
-                          </SelectContent>
-                        </Select>
+                        <span className="text-gray-400 text-sm">System will assign</span>
                       )}
                     </TableCell>
                     <TableCell>

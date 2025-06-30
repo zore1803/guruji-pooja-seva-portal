@@ -38,21 +38,13 @@ export default function AuthPage() {
     }
   }, [user, navigate, role]);
 
+  // Clear form when role changes
   useEffect(() => {
-    // Pre-fill admin credentials
-    if (role === "admin") {
-      setFormData({
-        email: "admin@gmail.com",
-        password: "admin",
-        name: "Administrator",
-      });
-    } else {
-      setFormData({
-        email: "",
-        password: "",
-        name: "",
-      });
-    }
+    setFormData({
+      email: "",
+      password: "",
+      name: "",
+    });
   }, [role]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -152,8 +144,7 @@ export default function AuthPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  readOnly
-                  className="bg-gray-50"
+                  placeholder="Enter admin email"
                 />
               </div>
               <div className="space-y-2">
@@ -164,8 +155,7 @@ export default function AuthPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  readOnly
-                  className="bg-gray-50"
+                  placeholder="Enter admin password"
                 />
               </div>
               <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={adminLoading}>

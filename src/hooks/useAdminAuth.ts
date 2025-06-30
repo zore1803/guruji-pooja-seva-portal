@@ -59,10 +59,10 @@ export function useAdminAuth() {
 
   const createAdminUser = async () => {
     try {
-      // First, sign up the admin user
+      // First, sign up the admin user with a stronger password
       const { data, error } = await supabase.auth.signUp({
         email: "admin@gmail.com",
-        password: "admin",
+        password: "admin123", // Updated to meet minimum requirements
         options: {
           data: {
             name: "Administrator",

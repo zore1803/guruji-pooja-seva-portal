@@ -10,7 +10,7 @@ import { LogOut, Edit } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
 import { format } from "date-fns";
 
-// Define booking display type
+// Define booking display type with all required properties
 type Booking = {
   id: string;
   service_id: number | null;
@@ -18,7 +18,10 @@ type Booking = {
   status: string | null;
   invoice_url: string | null;
   created_at: string;
-  // No customer_id field
+  location: string | null;
+  address: string | null;
+  service?: { name: string } | null;
+  assigned_pandit?: { name: string; expertise?: string } | null;
 };
 
 export default function DashboardCustomer() {
@@ -65,7 +68,14 @@ export default function DashboardCustomer() {
       .then(({ data, error }) => {
         if (Array.isArray(data)) {
           const mapped = data.map((row: any) => ({
-            ...row,
+            id: row.id,
+            service_id: row.service_id,
+            tentative_date: row.tentative_date,
+            status: row.status,
+            invoice_url: row.invoice_url,
+            created_at: row.created_at,
+            location: row.location,
+            address: row.address,
             service: row.services,
             assigned_pandit: row.assigned_pandit,
           }));
