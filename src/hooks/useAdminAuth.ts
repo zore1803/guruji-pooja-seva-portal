@@ -64,23 +64,12 @@ export function useAdminAuth() {
 
   const createAdminUser = async () => {
     try {
-      // First check if admin user already exists
-      const { data: existingUser } = await supabase.auth.admin.listUsers();
-      const adminExists = existingUser.users?.some(user => user.email === "admin@gmail.com");
-      
-      if (adminExists) {
-        toast({
-          title: "Info",
-          description: "Admin user already exists. Use admin@gmail.com / admin123 to login",
-        });
-        return;
-      }
-
       // Create admin user with proper metadata
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: "admin@gmail.com",
         password: "admin123",
         options: {
+          emailRedirectTo: `${window.location.origin}/`,
           data: {
             name: "Administrator",
             user_type: "admin",
@@ -111,6 +100,12 @@ export function useAdminAuth() {
 
         if (profileError) {
           console.error("Error creating admin profile:", profileError);
+          toast({
+            title: "Profile Error",
+            description: "Admin user created but profile failed. Please try logging in.",
+            variant: "destructive",
+          });
+          return;
         }
       }
 
