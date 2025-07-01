@@ -43,6 +43,11 @@ export function useAdminAuth() {
         }
       }
 
+      toast({
+        title: "Success",
+        description: "Admin login successful",
+      });
+
       return { success: true, data };
     } catch (error) {
       console.error("Admin login error:", error);
@@ -59,10 +64,10 @@ export function useAdminAuth() {
 
   const createAdminUser = async () => {
     try {
-      // First, sign up the admin user with a stronger password
-      const { data, error } = await supabase.auth.signUp({
+      // Create admin user account
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email: "admin@gmail.com",
-        password: "admin123", // Updated to meet minimum requirements
+        password: "admin123",
         options: {
           data: {
             name: "Administrator",
@@ -71,22 +76,49 @@ export function useAdminAuth() {
         },
       });
 
-      if (error) {
-        console.error("Error creating admin user:", error);
+      if (authError) {
+        console.error("Error creating admin user:", authError);
+        toast({
+          title: "Error",
+          description: authError.message,
+          variant: "destructive",
+        });
         return;
       }
 
-      // If successful, manually create the profile
-      if (data.user) {
-        await supabase.from("profiles").insert({
-          id: data.user.id,
-          name: "Administrator",
-          email: "admin@gmail.com",
-          user_type: "admin",
-        });
+      // If user was created, ensure profile exists
+      if (authData.user) {
+        // Wait a bit for the trigger to create the profile
+        setTimeout(async () => {
+          const { data: existingProfile } = await supabase
+            .from("profiles")
+            .select("*")
+            .eq("id", authData.user.id)
+            .single();
+
+          if (!existingProfile) {
+            // Manually create profile if trigger didn't work
+            await supabase.from("profiles").insert({
+              id: authData.user.id,
+              name: "Administrator",
+              email: "admin@gmail.com",
+              user_type: "admin",
+            });
+          }
+        }, 2000);
       }
+
+      toast({
+        title: "Success",
+        description: "Admin user created successfully. You can now log in with admin@gmail.com / admin123",
+      });
     } catch (error) {
       console.error("Error in createAdminUser:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create admin user",
+        variant: "destructive",
+      });
     }
   };
 

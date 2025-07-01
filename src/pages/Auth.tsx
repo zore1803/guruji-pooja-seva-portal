@@ -10,6 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
+import OTPVerification from "@/components/OTPVerification";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -17,6 +18,8 @@ export default function AuthPage() {
   const { user } = useSession();
   const { adminLogin, createAdminUser, loading: adminLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
+  const [showOTPVerification, setShowOTPVerification] = useState(false);
+  const [pendingEmail, setPendingEmail] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -45,6 +48,8 @@ export default function AuthPage() {
       password: "",
       name: "",
     });
+    setShowOTPVerification(false);
+    setPendingEmail("");
   }, [role]);
 
   const handleSignUp = async (e: React.FormEvent) => {
@@ -72,9 +77,11 @@ export default function AuthPage() {
         variant: "destructive",
       });
     } else {
+      setPendingEmail(formData.email);
+      setShowOTPVerification(true);
       toast({
-        title: "Success",
-        description: "Please check your email to confirm your account",
+        title: "Verification Required",
+        description: "Please check your email for the verification code",
       });
     }
     
@@ -112,11 +119,33 @@ export default function AuthPage() {
 
   const handleCreateAdmin = async () => {
     await createAdminUser();
-    toast({
-      title: "Admin User Created",
-      description: "Admin user has been created. You can now log in.",
-    });
   };
+
+  const handleOTPVerificationComplete = () => {
+    setShowOTPVerification(false);
+    toast({
+      title: "Welcome!",
+      description: "Your account has been verified successfully",
+    });
+    // User will be automatically redirected by the useEffect hook
+  };
+
+  const handleBackToRegistration = () => {
+    setShowOTPVerification(false);
+    setPendingEmail("");
+  };
+
+  if (showOTPVerification) {
+    return (
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center p-4">
+        <OTPVerification
+          email={pendingEmail}
+          onVerificationComplete={handleOTPVerificationComplete}
+          onBack={handleBackToRegistration}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center p-4">
