@@ -9,6 +9,27 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      admin_credentials: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: number
+          password_hash: string
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: number
+          password_hash: string
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: number
+          password_hash?: string
+        }
+        Relationships: []
+      }
       bookings: {
         Row: {
           address: string | null
@@ -225,7 +246,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_admin_user_safe: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       user_type: "pandit" | "customer" | "admin"

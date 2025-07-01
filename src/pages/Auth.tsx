@@ -20,6 +20,7 @@ export default function AuthPage() {
   const [loading, setLoading] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [isRedirecting, setIsRedirecting] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -29,7 +30,9 @@ export default function AuthPage() {
   const role = searchParams.get("role") || "customer";
 
   useEffect(() => {
-    if (user) {
+    if (user && !isRedirecting) {
+      setIsRedirecting(true);
+      
       // Auto redirect based on user type after login
       const redirectToDashboard = async () => {
         try {
@@ -39,44 +42,53 @@ export default function AuthPage() {
             .eq("id", user.id)
             .single();
 
+          let redirectPath = "/dashboard-customer"; // default
+
           if (profile) {
             switch (profile.user_type) {
               case "admin":
-                navigate("/dashboard-admin");
+                redirectPath = "/dashboard-admin";
                 break;
               case "pandit":
-                navigate("/dashboard-pandit");
+                redirectPath = "/dashboard-pandit";
                 break;
               default:
-                navigate("/dashboard-customer");
+                redirectPath = "/dashboard-customer";
                 break;
             }
           } else {
-            // Default redirect based on role parameter
+            // Fallback based on role parameter
             if (role === "admin") {
-              navigate("/dashboard-admin");
+              redirectPath = "/dashboard-admin";
             } else if (role === "pandit") {
-              navigate("/dashboard-pandit");
-            } else {
-              navigate("/dashboard-customer");
+              redirectPath = "/dashboard-pandit";
             }
           }
+
+          // Small delay to prevent flickering
+          setTimeout(() => {
+            navigate(redirectPath, { replace: true });
+          }, 100);
+
         } catch (error) {
           console.error("Error fetching user profile:", error);
           // Fallback to role-based navigation
+          let fallbackPath = "/dashboard-customer";
           if (role === "admin") {
-            navigate("/dashboard-admin");
+            fallbackPath = "/dashboard-admin";
           } else if (role === "pandit") {
-            navigate("/dashboard-pandit");
-          } else {
-            navigate("/dashboard-customer");
+            fallbackPath = "/dashboard-pandit";
           }
+          
+          setTimeout(() => {
+            navigate(fallbackPath, { replace: true });
+          }, 100);
         }
       };
 
       redirectToDashboard();
     }
-  }, [user, navigate, role]);
+  }, [user, navigate, role, isRedirecting]);
 
   // Clear form when role changes
   useEffect(() => {
@@ -132,6 +144,10 @@ export default function AuthPage() {
       const result = await adminLogin(formData.email, formData.password);
       if (result.success) {
         // Navigation will happen automatically via useEffect
+        toast({
+          title: "Success",
+          description: "Redirecting to admin dashboard...",
+        });
       }
       return;
     }
@@ -150,10 +166,9 @@ export default function AuthPage() {
         variant: "destructive",
       });
     } else {
-      // Navigation will happen automatically via useEffect
       toast({
         title: "Success",
-        description: "Login successful",
+        description: "Redirecting to dashboard...",
       });
     }
     
@@ -177,6 +192,17 @@ export default function AuthPage() {
     setShowOTPVerification(false);
     setPendingEmail("");
   };
+
+  // Show a simple loading state while redirecting
+  if (user && isRedirecting) {
+    return (
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center p-4">
+        <div className="text-center">
+          <div className="text-orange-600 text-lg font-medium">Redirecting to dashboard...</div>
+        </div>
+      </div>
+    );
+  }
 
   if (showOTPVerification) {
     return (

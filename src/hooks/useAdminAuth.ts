@@ -64,54 +64,22 @@ export function useAdminAuth() {
 
   const createAdminUser = async () => {
     try {
-      // Create admin user with proper metadata
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: "admin@gmail.com",
-        password: "admin123",
-        options: {
-          emailRedirectTo: `${window.location.origin}/`,
-          data: {
-            name: "Administrator",
-            user_type: "admin",
-          },
-        },
-      });
-
-      if (authError) {
-        console.error("Error creating admin user:", authError);
+      // Use the database function to create admin user safely
+      const { error } = await supabase.rpc('create_admin_user_safe');
+      
+      if (error) {
+        console.error("Error creating admin user:", error);
         toast({
           title: "Error",
-          description: authError.message,
+          description: error.message,
           variant: "destructive",
         });
         return;
       }
 
-      // Manually create profile with proper enum value
-      if (authData.user) {
-        const { error: profileError } = await supabase
-          .from("profiles")
-          .upsert({
-            id: authData.user.id,
-            name: "Administrator",
-            email: "admin@gmail.com",
-            user_type: "admin",
-          });
-
-        if (profileError) {
-          console.error("Error creating admin profile:", profileError);
-          toast({
-            title: "Profile Error",
-            description: "Admin user created but profile failed. Please try logging in.",
-            variant: "destructive",
-          });
-          return;
-        }
-      }
-
       toast({
         title: "Success",
-        description: "Admin user created successfully. You can now log in with admin@gmail.com / admin123",
+        description: "Admin user setup completed. You can now log in with admin@gmail.com / admin123",
       });
     } catch (error) {
       console.error("Error in createAdminUser:", error);
