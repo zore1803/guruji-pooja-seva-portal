@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useSession } from "@/hooks/useSession";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogIn, User, Menu, LogOut } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import {
@@ -34,6 +34,32 @@ const Navbar = () => {
   const location = useLocation();
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
+  // Fetch user type when user is available
+  useEffect(() => {
+    if (user) {
+      const fetchUserType = async () => {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .single();
+          
+          if (profile) {
+            setUserType(profile.user_type);
+          }
+        } catch (error) {
+          console.error("Error fetching user type:", error);
+        }
+      };
+      
+      fetchUserType();
+    } else {
+      setUserType(null);
+    }
+  }, [user]);
 
   const navItems = [
     { name: "Home", href: "/" },
@@ -48,8 +74,8 @@ const Navbar = () => {
   };
 
   const getDashboardUrl = () => {
-    if (location.pathname.includes("admin")) return "/dashboard-admin";
-    if (location.pathname.includes("pandit")) return "/dashboard-pandit";
+    if (userType === "admin") return "/dashboard-admin";
+    if (userType === "pandit") return "/dashboard-pandit";
     return "/dashboard-customer";
   };
 

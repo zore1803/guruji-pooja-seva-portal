@@ -17,7 +17,7 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [countdown, setCountdown] = useState(0);
+  const [countdown, setCountdown] = useState(60); // Start with 60 second countdown
 
   useEffect(() => {
     if (countdown > 0) {
@@ -39,24 +39,34 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
 
     setLoading(true);
     
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: otp,
-      type: 'signup'
-    });
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email,
+        token: otp,
+        type: 'signup'
+      });
 
-    if (error) {
+      if (error) {
+        console.error("OTP verification error:", error);
+        toast({
+          title: "Verification Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "Success",
+          description: "Email verified successfully!",
+        });
+        onVerificationComplete();
+      }
+    } catch (error) {
+      console.error("Unexpected error during OTP verification:", error);
       toast({
-        title: "Verification Failed",
-        description: error.message,
+        title: "Error",
+        description: "An unexpected error occurred during verification",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Email verified successfully!",
-      });
-      onVerificationComplete();
     }
     
     setLoading(false);
@@ -65,23 +75,34 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
   const handleResendOTP = async () => {
     setResendLoading(true);
     
-    const { error } = await supabase.auth.resend({
-      type: 'signup',
-      email,
-    });
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+      });
 
-    if (error) {
+      if (error) {
+        console.error("Resend OTP error:", error);
+        toast({
+          title: "Resend Failed",
+          description: error.message,
+          variant: "destructive",
+        });
+      } else {
+        toast({
+          title: "OTP Sent",
+          description: "A new OTP has been sent to your email",
+        });
+        setCountdown(60);
+        setOtp(""); // Clear the current OTP input
+      }
+    } catch (error) {
+      console.error("Unexpected error during OTP resend:", error);
       toast({
-        title: "Resend Failed",
-        description: error.message,
+        title: "Error",
+        description: "Failed to resend OTP",
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "OTP Sent",
-        description: "A new OTP has been sent to your email",
-      });
-      setCountdown(60);
     }
     
     setResendLoading(false);
@@ -96,6 +117,10 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
         <CardDescription className="text-center">
           We've sent a 6-digit verification code to<br/>
           <strong>{email}</strong>
+          <br/>
+          <span className="text-sm text-gray-500 mt-2 block">
+            Check your inbox and spam folder for the verification email
+          </span>
         </CardDescription>
       </CardHeader>
       <CardContent>

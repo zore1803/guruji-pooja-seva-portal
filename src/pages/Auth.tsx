@@ -30,14 +30,51 @@ export default function AuthPage() {
 
   useEffect(() => {
     if (user) {
-      // Redirect based on user type
-      if (role === "admin") {
-        navigate("/dashboard-admin");
-      } else if (role === "pandit") {
-        navigate("/dashboard-pandit");
-      } else {
-        navigate("/dashboard-customer");
-      }
+      // Auto redirect based on user type after login
+      const redirectToDashboard = async () => {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", user.id)
+            .single();
+
+          if (profile) {
+            switch (profile.user_type) {
+              case "admin":
+                navigate("/dashboard-admin");
+                break;
+              case "pandit":
+                navigate("/dashboard-pandit");
+                break;
+              default:
+                navigate("/dashboard-customer");
+                break;
+            }
+          } else {
+            // Default redirect based on role parameter
+            if (role === "admin") {
+              navigate("/dashboard-admin");
+            } else if (role === "pandit") {
+              navigate("/dashboard-pandit");
+            } else {
+              navigate("/dashboard-customer");
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching user profile:", error);
+          // Fallback to role-based navigation
+          if (role === "admin") {
+            navigate("/dashboard-admin");
+          } else if (role === "pandit") {
+            navigate("/dashboard-pandit");
+          } else {
+            navigate("/dashboard-customer");
+          }
+        }
+      };
+
+      redirectToDashboard();
     }
   }, [user, navigate, role]);
 
@@ -94,7 +131,7 @@ export default function AuthPage() {
     if (role === "admin") {
       const result = await adminLogin(formData.email, formData.password);
       if (result.success) {
-        navigate("/dashboard-admin");
+        // Navigation will happen automatically via useEffect
       }
       return;
     }
@@ -111,6 +148,12 @@ export default function AuthPage() {
         title: "Error",
         description: error.message,
         variant: "destructive",
+      });
+    } else {
+      // Navigation will happen automatically via useEffect
+      toast({
+        title: "Success",
+        description: "Login successful",
       });
     }
     
