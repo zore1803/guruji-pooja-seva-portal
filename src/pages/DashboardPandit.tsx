@@ -1,3 +1,4 @@
+
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -25,7 +26,6 @@ export default function DashboardPandit() {
       return;
     }
     let isMounted = true;
-    // Avoid infinite recursion by not assigning type to data directly
     async function fetchProfile() {
       let tries = 0;
       while (tries < 5) {
@@ -93,7 +93,6 @@ export default function DashboardPandit() {
       description: "Booking accepted successfully",
     });
 
-    // Refresh bookings
     window.location.reload();
   };
 
@@ -121,7 +120,6 @@ export default function DashboardPandit() {
       description: "Booking rejected successfully",
     });
 
-    // Refresh bookings
     window.location.reload();
   };
 
@@ -255,7 +253,7 @@ export default function DashboardPandit() {
         </div>
 
         <div className="mt-8">
-          <PanditCompletedPoojasTable />
+          <PanditCompletedPoojasTable panditId={user.id} />
         </div>
       </div>
       <EditPanditProfileModal

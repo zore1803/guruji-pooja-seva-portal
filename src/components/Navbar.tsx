@@ -2,9 +2,10 @@
 import { Link, useLocation } from "react-router-dom";
 import { useSession } from "@/hooks/useSession";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { LogIn, User, Menu } from "lucide-react";
+import { LogIn, User, Menu, LogOut } from "lucide-react";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
 import {
   NavigationMenu,
   NavigationMenuContent,
@@ -20,6 +21,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const Navbar = () => {
   const { user } = useSession();
@@ -33,6 +41,17 @@ const Navbar = () => {
     { name: "About Us", href: "/about" },
     { name: "Contact", href: "/contact" },
   ];
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    window.location.href = "/";
+  };
+
+  const getDashboardUrl = () => {
+    if (location.pathname.includes("admin")) return "/dashboard-admin";
+    if (location.pathname.includes("pandit")) return "/dashboard-pandit";
+    return "/dashboard-customer";
+  };
 
   const MobileNav = () => (
     <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -89,21 +108,29 @@ const Navbar = () => {
                 </Link>
               </div>
             ) : (
-              <Link
-                to={
-                  location.pathname.includes("admin") ? "/dashboard-admin" :
-                  location.pathname.includes("pandit") ? "/dashboard-pandit" : 
-                  "/dashboard-customer"
-                }
-                onClick={() => setIsOpen(false)}
-                className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"
-              >
-                <Avatar className="w-8 h-8">
-                  <AvatarImage src={user.user_metadata?.profile_image_url} alt={user.user_metadata?.name || "avatar"} />
-                  <AvatarFallback>{user.user_metadata?.name?.charAt(0)?.toUpperCase() || "A"}</AvatarFallback>
-                </Avatar>
-                <span className="text-sm font-medium">Dashboard</span>
-              </Link>
+              <div className="flex flex-col gap-3">
+                <Link
+                  to={getDashboardUrl()}
+                  onClick={() => setIsOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-orange-50"
+                >
+                  <Avatar className="w-8 h-8">
+                    <AvatarImage src={user.user_metadata?.profile_image_url} alt={user.user_metadata?.name || "avatar"} />
+                    <AvatarFallback>{user.user_metadata?.name?.charAt(0)?.toUpperCase() || "A"}</AvatarFallback>
+                  </Avatar>
+                  <span className="text-sm font-medium">Dashboard</span>
+                </Link>
+                <button
+                  onClick={() => {
+                    setIsOpen(false);
+                    handleLogout();
+                  }}
+                  className="flex items-center gap-2 text-sm bg-red-50 px-4 py-3 rounded-lg hover:bg-red-100 text-red-700"
+                >
+                  <LogOut size={16} />
+                  Sign Out
+                </button>
+              </div>
             )}
           </div>
         </nav>
@@ -163,16 +190,29 @@ const Navbar = () => {
           </>
         ) : (
           user && !isMobile && (
-            <Link to={
-              location.pathname.includes("admin") ? "/dashboard-admin" :
-              location.pathname.includes("pandit") ? "/dashboard-pandit" : 
-              "/dashboard-customer"
-            }>
-              <Avatar>
-                <AvatarImage src={user.user_metadata?.profile_image_url} alt={user.user_metadata?.name || "avatar"} />
-                <AvatarFallback>{user.user_metadata?.name?.charAt(0)?.toUpperCase() || "A"}</AvatarFallback>
-              </Avatar>
-            </Link>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="focus:outline-none">
+                  <Avatar className="hover:ring-2 hover:ring-orange-200 transition-all">
+                    <AvatarImage src={user.user_metadata?.profile_image_url} alt={user.user_metadata?.name || "avatar"} />
+                    <AvatarFallback>{user.user_metadata?.name?.charAt(0)?.toUpperCase() || "A"}</AvatarFallback>
+                  </Avatar>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem asChild>
+                  <Link to={getDashboardUrl()} className="flex items-center gap-2">
+                    <User size={16} />
+                    Dashboard
+                  </Link>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-red-600">
+                  <LogOut size={16} />
+                  Sign Out
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )
         )}
         <MobileNav />
