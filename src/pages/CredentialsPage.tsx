@@ -1,4 +1,3 @@
-
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -45,11 +44,12 @@ export default function CredentialsPage() {
       return;
     }
 
-    const serviceIdNum = Number(id);
-    if (isNaN(serviceIdNum) || !Number.isInteger(serviceIdNum)) {
+    // Convert service ID to number properly
+    const serviceIdNum = parseInt(id, 10);
+    if (isNaN(serviceIdNum)) {
       toast({
         title: "Invalid Service",
-        description: "Service ID is not a valid integer.",
+        description: "Service ID is not valid.",
         variant: "destructive",
       });
       return;
@@ -70,7 +70,7 @@ export default function CredentialsPage() {
       // Verify service exists
       const { data: existingService, error: serviceError } = await supabase
         .from("services")
-        .select("id")
+        .select("id, name")
         .eq("id", serviceIdNum)
         .single();
 
@@ -78,9 +78,9 @@ export default function CredentialsPage() {
         throw new Error("Service not found");
       }
 
-      // Create booking with explicit user ID
+      // Create booking with proper UUID handling
       const bookingPayload = {
-        created_by: user.id, // Explicitly set the user ID
+        created_by: user.id,
         service_id: serviceIdNum,
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
         status: "pending",
@@ -90,19 +90,43 @@ export default function CredentialsPage() {
 
       console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
-      const { error: insertError } = await supabase
+      const { data: bookingResult, error: insertError } = await supabase
         .from("bookings")
-        .insert([bookingPayload]);
+        .insert([bookingPayload])
+        .select('*')
+        .single();
 
       if (insertError) {
         console.error('[BOOKING INSERT ERROR]:', insertError);
         throw insertError;
       }
 
+      // Store booking in localStorage for cross-dashboard display
+      const bookingDetails = {
+        id: bookingResult.id,
+        service_name: existingService.name,
+        service_id: serviceIdNum,
+        customer_name: profile?.name || user.email,
+        customer_email: user.email,
+        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
+        to_date: format(data.toDate, "yyyy-MM-dd"),
+        location: data.location,
+        address: data.address,
+        status: "pending",
+        created_at: new Date().toISOString(),
+      };
+
+      // Store in localStorage
+      const existingBookings = JSON.parse(localStorage.getItem('recentBookings') || '[]');
+      existingBookings.unshift(bookingDetails);
+      // Keep only last 10 bookings
+      localStorage.setItem('recentBookings', JSON.stringify(existingBookings.slice(0, 10)));
+
       toast({
         title: "Booking Submitted Successfully",
         description: (
           <div className="text-left">
+            <div><b>Service:</b> {existingService.name}</div>
             <div><b>From:</b> {format(data.fromDate, "PPP")}</div>
             <div><b>To:</b> {format(data.toDate, "PPP")}</div>
             <div><b>Location:</b> {data.location}</div>

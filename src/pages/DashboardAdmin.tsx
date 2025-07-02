@@ -35,9 +35,24 @@ type Booking = {
   assigned_pandit?: Profile | null;
 };
 
+type LocalStorageBooking = {
+  id: string;
+  service_name: string;
+  service_id: number;
+  customer_name: string;
+  customer_email: string;
+  tentative_date: string;
+  to_date: string;
+  location: string;
+  address: string;
+  status: string;
+  created_at: string;
+};
+
 export default function DashboardAdmin() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
+  const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>("all");
   const [stats, setStats] = useState({
@@ -55,6 +70,27 @@ export default function DashboardAdmin() {
       return;
     }
   }, [navigate]);
+
+  // Load localStorage bookings
+  useEffect(() => {
+    const loadLocalBookings = () => {
+      try {
+        const stored = localStorage.getItem('recentBookings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          setLocalBookings(parsed);
+        }
+      } catch (error) {
+        console.error('Error loading local bookings:', error);
+      }
+    };
+
+    loadLocalBookings();
+    
+    // Set up interval to check for new bookings
+    const interval = setInterval(loadLocalBookings, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Fetch bookings data for admin overview
   useEffect(() => {
@@ -89,11 +125,13 @@ export default function DashboardAdmin() {
 
         setBookings(mapped);
         
+        // Combine with localStorage bookings for stats
+        const allBookings = [...mapped, ...localBookings];
         setStats({
-          totalBookings: mapped.length,
-          pendingBookings: mapped.filter(b => b.status === "pending").length,
-          confirmedBookings: mapped.filter(b => b.status === "confirmed").length,
-          completedBookings: mapped.filter(b => b.status === "completed").length,
+          totalBookings: allBookings.length,
+          pendingBookings: allBookings.filter(b => b.status === "pending").length,
+          confirmedBookings: allBookings.filter(b => b.status === "confirmed").length,
+          completedBookings: allBookings.filter(b => b.status === "completed").length,
         });
       }
 
@@ -101,7 +139,7 @@ export default function DashboardAdmin() {
     };
 
     fetchData();
-  }, []);
+  }, [localBookings]);
 
   const handleLogout = async () => {
     localStorage.removeItem('isAdmin');
@@ -110,14 +148,18 @@ export default function DashboardAdmin() {
   };
 
   const getFilteredBookings = () => {
-    if (activeFilter === "all") return bookings;
-    return bookings.filter(booking => booking.status === activeFilter);
+    const dbBookings = activeFilter === "all" ? bookings : bookings.filter(booking => booking.status === activeFilter);
+    const localFilteredBookings = activeFilter === "all" ? localBookings : localBookings.filter(booking => booking.status === activeFilter);
+    
+    return { dbBookings, localFilteredBookings };
   };
 
   const adminProfile = {
     name: "Administrator",
     email: localStorage.getItem('adminEmail') || "admin@gmail.com"
   };
+
+  const { dbBookings, localFilteredBookings } = getFilteredBookings();
 
   return (
     <div className="pt-8 px-5">
@@ -213,7 +255,7 @@ export default function DashboardAdmin() {
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading bookings...</div>
-          ) : getFilteredBookings().length === 0 ? (
+          ) : (dbBookings.length === 0 && localFilteredBookings.length === 0) ? (
             <div className="p-8 text-center text-gray-500">No {activeFilter === "all" ? "" : activeFilter} bookings found</div>
           ) : (
             <Table>
@@ -224,13 +266,14 @@ export default function DashboardAdmin() {
                   <TableHead>Date</TableHead>
                   <TableHead>Location</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Assigned Pandit</TableHead>
+                  <TableHead>Source</TableHead>
                   <TableHead>Created</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {getFilteredBookings().map((booking) => (
-                  <TableRow key={booking.id}>
+                {/* Database Bookings */}
+                {dbBookings.map((booking) => (
+                  <TableRow key={`db-${booking.id}`}>
                     <TableCell>
                       <div>
                         <div className="font-medium">{booking.customer_profile?.name}</div>
@@ -250,23 +293,50 @@ export default function DashboardAdmin() {
                     <TableCell>
                       <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                         booking.status === "pending" ? "bg-orange-100 text-orange-800" :
-                        booking.status === "assigned" ? "bg-blue-100 text-blue-800" :
                         booking.status === "confirmed" ? "bg-green-100 text-green-800" :
                         booking.status === "completed" ? "bg-purple-100 text-purple-800" :
-                        booking.status === "cancelled" ? "bg-red-100 text-red-800" :
                         "bg-gray-100 text-gray-800"
                       }`}>
                         {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Unknown"}
                       </span>
                     </TableCell>
                     <TableCell>
-                      {booking.assigned_pandit ? (
-                        <div className="text-sm">
-                          {booking.assigned_pandit.name}
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">System will assign</span>
-                      )}
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Database</span>
+                    </TableCell>
+                    <TableCell>
+                      <div className="text-xs text-gray-500">
+                        {format(new Date(booking.created_at), "PPp")}
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                
+                {/* Local Storage Bookings */}
+                {localFilteredBookings.map((booking) => (
+                  <TableRow key={`local-${booking.id}`} className="bg-yellow-50">
+                    <TableCell>
+                      <div>
+                        <div className="font-medium">{booking.customer_name}</div>
+                        <div className="text-sm text-gray-500">{booking.customer_email}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>{booking.service_name}</TableCell>
+                    <TableCell>
+                      {format(new Date(booking.tentative_date), "PPP")}
+                    </TableCell>
+                    <TableCell>
+                      <div>
+                        <div className="text-sm">{booking.location}</div>
+                        <div className="text-xs text-gray-500">{booking.address}</div>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Recent</span>
                     </TableCell>
                     <TableCell>
                       <div className="text-xs text-gray-500">

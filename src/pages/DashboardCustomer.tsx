@@ -28,44 +28,83 @@ export default function DashboardCustomer() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
+  const [profileLoading, setProfileLoading] = useState(true);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loadingBookings, setLoadingBookings] = useState(false);
 
+  // Handle user authentication and profile loading
   useEffect(() => {
     if (!user) {
       navigate("/auth?role=customer");
       return;
     }
-    let isMounted = true;
-    // Avoid infinite recursion by not assigning type to data directly
-    async function fetchProfile() {
-      let tries = 0;
-      while (tries < 5) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
-        if (data) {
-          if (isMounted) setProfile(data as any);
+
+    const fetchProfile = async () => {
+      try {
+        setProfileLoading(true);
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') {
+          console.error('Profile fetch error:', error);
           return;
         }
-        await new Promise(res => setTimeout(res, 400));
-        tries += 1;
+
+        if (data) {
+          setProfile(data);
+        } else {
+          // Create profile if it doesn't exist
+          const { data: newProfile, error: createError } = await supabase
+            .from("profiles")
+            .insert([{
+              id: user.id,
+              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
+              email: user.email || '',
+              user_type: 'customer',
+              is_verified: false
+            }])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('Profile creation error:', createError);
+          } else {
+            setProfile(newProfile);
+          }
+        }
+      } catch (error) {
+        console.error('Unexpected error:', error);
+      } finally {
+        setProfileLoading(false);
       }
-      if (isMounted) setProfile(null);
-    }
+    };
+
     fetchProfile();
-    return () => { isMounted = false; };
   }, [user, navigate]);
 
+  // Load bookings separately
   useEffect(() => {
     if (!user) return;
-    setLoadingBookings(true);
-    supabase
-      .from("bookings")
-      .select("*, services:service_id (*), assigned_pandit:pandit_id (*)")
-      .eq("created_by", user.id)
-      .in("status", ["pending", "assigned", "confirmed", "completed"])
-      .order("created_at", { ascending: false })
-      .then(({ data, error }) => {
+    
+    const loadBookings = async () => {
+      setLoadingBookings(true);
+      try {
+        const { data, error } = await supabase
+          .from("bookings")
+          .select("*, services:service_id (*), assigned_pandit:pandit_id (*)")
+          .eq("created_by", user.id)
+          .in("status", ["pending", "assigned", "confirmed", "completed"])
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error('Bookings fetch error:', error);
+          return;
+        }
+
         if (Array.isArray(data)) {
           const mapped = data.map((row: any) => ({
             id: row.id,
@@ -80,11 +119,15 @@ export default function DashboardCustomer() {
             assigned_pandit: row.assigned_pandit,
           }));
           setBookings(mapped);
-        } else {
-          setBookings([]);
         }
+      } catch (error) {
+        console.error('Booking load error:', error);
+      } finally {
         setLoadingBookings(false);
-      });
+      }
+    };
+
+    loadBookings();
   }, [user]);
 
   const handleProfileUpdated = (updated: any) => {
@@ -97,12 +140,23 @@ export default function DashboardCustomer() {
   };
 
   if (!user) {
-    return <div className="flex items-center justify-center py-10">Loading...</div>;
-  }
-  if (!profile) {
     return (
-      <div className="flex items-center justify-center py-10 text-gray-500 animate-pulse">
-        Creating your profile...
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (profileLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Setting up your profile...</p>
+        </div>
       </div>
     );
   }
@@ -111,10 +165,10 @@ export default function DashboardCustomer() {
     <div className="pt-8 px-5 flex-col md:flex-row flex items-start gap-8">
       <div className="w-[190px] flex flex-col items-center">
         <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={profile.profile_image_url} alt={profile.name} />
-          <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+          <AvatarImage src={profile?.profile_image_url} alt={profile?.name} />
+          <AvatarFallback>{profile?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
         </Avatar>
-        <span className="font-semibold">{profile.name}</span>
+        <span className="font-semibold">{profile?.name || 'User'}</span>
         <span className="text-xs text-gray-500">Customer</span>
         <div className="mt-4 flex w-full flex-col gap-2">
           <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">

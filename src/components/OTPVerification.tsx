@@ -18,7 +18,6 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [countdown, setCountdown] = useState(60);
-  const [skipVerification, setSkipVerification] = useState(false);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -109,12 +108,32 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
     setResendLoading(false);
   };
 
-  const handleSkipVerification = () => {
-    toast({
-      title: "Verification Skipped",
-      description: "You can verify your email later from your profile settings",
-    });
-    onVerificationComplete();
+  const handleSkipVerification = async () => {
+    try {
+      // Try to sign in with the credentials to complete the registration process
+      const { data, error } = await supabase.auth.getSession();
+      
+      if (data.session) {
+        toast({
+          title: "Registration Complete",
+          description: "You can verify your email later from your profile settings",
+        });
+        onVerificationComplete();
+      } else {
+        toast({
+          title: "Verification Skipped",
+          description: "Please sign in with your credentials to continue",
+        });
+        onVerificationComplete();
+      }
+    } catch (error) {
+      console.error("Skip verification error:", error);
+      toast({
+        title: "Verification Skipped",
+        description: "Please sign in with your credentials to continue",
+      });
+      onVerificationComplete();
+    }
   };
 
   return (
@@ -174,7 +193,7 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
               onClick={handleSkipVerification}
               className="text-sm"
             >
-              Skip Verification (Continue without email verification)
+              Skip Verification & Continue
             </Button>
             <Button
               type="button"
