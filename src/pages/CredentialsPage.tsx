@@ -12,51 +12,45 @@ import CredentialsForm, { CredentialsFormValues } from "@/components/Credentials
 export default function CredentialsPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const { profile, loading: loadingProfile } = useCustomerProfile();
   const [loading, setLoading] = React.useState(false);
 
-  const handleSubmit = async (data: CredentialsFormValues) => {
-    // Debug logs for types
-    console.log('[Booking DEBUG] Params:', { raw_param_id: id, typeof_param_id: typeof id });
-    console.log('[Booking DEBUG] User:', { id: user?.id, typeof_user_id: typeof user?.id });
-    console.log('[Booking DEBUG] Payload from form:', data);
+  React.useEffect(() => {
+    if (!sessionLoading && !user) {
+      navigate("/auth?role=customer");
+    }
+  }, [user, sessionLoading, navigate]);
 
-    // Double-check types & values
+  const handleSubmit = async (data: CredentialsFormValues) => {
+    console.log('[Booking DEBUG] Starting booking submission');
+    console.log('[Booking DEBUG] User:', { id: user?.id, typeof_user_id: typeof user?.id });
+    console.log('[Booking DEBUG] Service ID param:', { raw_param_id: id, typeof_param_id: typeof id });
+
     if (!user || !user.id) {
       toast({
-        title: "You must be logged in!",
+        title: "Authentication Required",
         description: "Please log in to proceed.",
+        variant: "destructive",
       });
       return;
     }
+
     if (!id) {
       toast({
         title: "Invalid Service",
         description: "No service ID found.",
+        variant: "destructive",
       });
       return;
     }
-    // Make sure serviceId is a valid integer
+
     const serviceIdNum = Number(id);
     if (isNaN(serviceIdNum) || !Number.isInteger(serviceIdNum)) {
       toast({
         title: "Invalid Service",
         description: "Service ID is not a valid integer.",
-      });
-      return;
-    }
-    // Sanity log
-    console.log('[Booking DEBUG] Parsed service_id (must be int):', { value: serviceIdNum, type: typeof serviceIdNum });
-
-    // Validate user.id as uuid
-    const isUUID = typeof user.id === "string" &&
-      /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(user.id);
-
-    if (!isUUID) {
-      toast({
-        title: "Invalid Session",
-        description: "Session user ID is not valid. Please logout and login again.",
+        variant: "destructive",
       });
       return;
     }
@@ -65,94 +59,88 @@ export default function CredentialsPage() {
       toast({
         title: "Date Required",
         description: "Please provide both dates.",
+        variant: "destructive",
       });
       return;
     }
 
     setLoading(true);
 
-    // Ensure the service exists before attempting to insert
-    const { data: existingService, error: serviceError } = await supabase
-      .from("services")
-      .select("id")
-      .eq("id", serviceIdNum)
-      .maybeSingle();
+    try {
+      // Verify service exists
+      const { data: existingService, error: serviceError } = await supabase
+        .from("services")
+        .select("id")
+        .eq("id", serviceIdNum)
+        .single();
 
-    if (serviceError || !existingService) {
-      setLoading(false);
-      toast({
-        title: "Service Not Found",
-        description: "The selected service does not exist.",
-      });
-      return;
-    }
-
-    // No more customer_id, use created_by (implicit)
-    const bookingPayload = {
-      service_id: serviceIdNum,
-      tentative_date: format(data.fromDate, "yyyy-MM-dd"),
-      status: "pending",
-      location: data.location,
-      address: data.address,
-      // invoice_url: not used for location/address anymore
-    };
-    // Defensive log: ensure no id or created_by is present
-    Object.keys(bookingPayload).forEach(key => {
-      if (['id', 'created_by'].includes(key)) {
-        // Should never be set!
-        throw new Error("Sanity error: Attempting to set a UUID column with potential invalid data!");
+      if (serviceError || !existingService) {
+        throw new Error("Service not found");
       }
-    });
-    console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
 
-    // Double check types
-    if (
-      typeof bookingPayload.service_id !== "number"
-    ) {
+      // Create booking with explicit user ID
+      const bookingPayload = {
+        created_by: user.id, // Explicitly set the user ID
+        service_id: serviceIdNum,
+        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
+        status: "pending",
+        location: data.location,
+        address: data.address,
+      };
+
+      console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
+
+      const { error: insertError } = await supabase
+        .from("bookings")
+        .insert([bookingPayload]);
+
+      if (insertError) {
+        console.error('[BOOKING INSERT ERROR]:', insertError);
+        throw insertError;
+      }
+
       toast({
-        title: "Type error!",
-        description: "Failed to assemble booking record (type mismatch).",
+        title: "Booking Submitted Successfully",
+        description: (
+          <div className="text-left">
+            <div><b>From:</b> {format(data.fromDate, "PPP")}</div>
+            <div><b>To:</b> {format(data.toDate, "PPP")}</div>
+            <div><b>Location:</b> {data.location}</div>
+            <div><b>Address:</b> {data.address}</div>
+          </div>
+        ),
       });
+
+      setTimeout(() => {
+        navigate(`/product/${id}`);
+      }, 1200);
+
+    } catch (error: any) {
+      console.error('[Booking submission error]:', error);
+      toast({
+        title: "Error submitting booking",
+        description: error.message || "An unexpected error occurred",
+        variant: "destructive",
+      });
+    } finally {
       setLoading(false);
-      return;
     }
-
-    const { error } = await supabase.from("bookings").insert([bookingPayload]);
-    setLoading(false);
-
-    if (error) {
-      toast({
-        title: "Error submitting booking.",
-        description: error.message,
-      });
-      // Log the error for debugging
-      console.log('[BOOKING INSERT ERROR]:', error);
-      return;
-    }
-
-    toast({
-      title: "Credentials Submitted",
-      description: (
-        <div className="text-left">
-          <div>
-            <b>From:</b> {data.fromDate ? format(data.fromDate, "PPP") : "--"}
-          </div>
-          <div>
-            <b>To:</b> {data.toDate ? format(data.toDate, "PPP") : "--"}
-          </div>
-          <div>
-            <b>Location:</b> {data.location}
-          </div>
-          <div>
-            <b>Address:</b> {data.address}
-          </div>
-        </div>
-      ),
-    });
-    setTimeout(() => {
-      navigate(`/product/${id}`);
-    }, 1200);
   };
+
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
 
   return (
     <div className="min-h-screen bg-[#f8ede8] flex flex-col items-center justify-start py-10 px-2">
@@ -161,7 +149,6 @@ export default function CredentialsPage() {
           Select Dates &amp; Location
         </h1>
         <ProfileSummary profile={profile} loading={loadingProfile} />
-        {/* Pass serviceId prop */}
         <CredentialsForm onSubmit={handleSubmit} loading={loading} serviceId={id} />
       </div>
     </div>

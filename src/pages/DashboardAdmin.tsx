@@ -39,6 +39,7 @@ export default function DashboardAdmin() {
   const navigate = useNavigate();
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
   const [stats, setStats] = useState({
     totalBookings: 0,
     pendingBookings: 0,
@@ -60,7 +61,6 @@ export default function DashboardAdmin() {
     const fetchData = async () => {
       setLoading(true);
       
-      // Fetch all bookings with related data
       const { data: bookingsData } = await supabase
         .from("bookings")
         .select(`
@@ -89,7 +89,6 @@ export default function DashboardAdmin() {
 
         setBookings(mapped);
         
-        // Calculate stats
         setStats({
           totalBookings: mapped.length,
           pendingBookings: mapped.filter(b => b.status === "pending").length,
@@ -108,6 +107,11 @@ export default function DashboardAdmin() {
     localStorage.removeItem('isAdmin');
     localStorage.removeItem('adminEmail');
     navigate("/");
+  };
+
+  const getFilteredBookings = () => {
+    if (activeFilter === "all") return bookings;
+    return bookings.filter(booking => booking.status === activeFilter);
   };
 
   const adminProfile = {
@@ -139,55 +143,78 @@ export default function DashboardAdmin() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center">
+        <Button 
+          variant={activeFilter === "all" ? "default" : "outline"}
+          onClick={() => setActiveFilter("all")}
+          className="p-6 h-auto flex-col items-start"
+        >
+          <div className="flex items-center w-full">
             <Calendar className="w-8 h-8 text-blue-600" />
-            <div className="ml-4">
+            <div className="ml-4 text-left">
               <div className="text-2xl font-bold">{stats.totalBookings}</div>
-              <div className="text-sm text-gray-600">Total Bookings</div>
+              <div className="text-sm">Total Bookings</div>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center">
+        </Button>
+        
+        <Button 
+          variant={activeFilter === "pending" ? "default" : "outline"}
+          onClick={() => setActiveFilter("pending")}
+          className="p-6 h-auto flex-col items-start"
+        >
+          <div className="flex items-center w-full">
             <Clock className="w-8 h-8 text-orange-600" />
-            <div className="ml-4">
+            <div className="ml-4 text-left">
               <div className="text-2xl font-bold">{stats.pendingBookings}</div>
-              <div className="text-sm text-gray-600">Pending</div>
+              <div className="text-sm">Pending</div>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center">
+        </Button>
+        
+        <Button 
+          variant={activeFilter === "confirmed" ? "default" : "outline"}
+          onClick={() => setActiveFilter("confirmed")}
+          className="p-6 h-auto flex-col items-start"
+        >
+          <div className="flex items-center w-full">
             <Users className="w-8 h-8 text-green-600" />
-            <div className="ml-4">
+            <div className="ml-4 text-left">
               <div className="text-2xl font-bold">{stats.confirmedBookings}</div>
-              <div className="text-sm text-gray-600">Confirmed</div>
+              <div className="text-sm">Confirmed</div>
             </div>
           </div>
-        </div>
-        <div className="bg-white p-6 rounded-lg shadow border">
-          <div className="flex items-center">
+        </Button>
+        
+        <Button 
+          variant={activeFilter === "completed" ? "default" : "outline"}
+          onClick={() => setActiveFilter("completed")}
+          className="p-6 h-auto flex-col items-start"
+        >
+          <div className="flex items-center w-full">
             <CheckCircle className="w-8 h-8 text-purple-600" />
-            <div className="ml-4">
+            <div className="ml-4 text-left">
               <div className="text-2xl font-bold">{stats.completedBookings}</div>
-              <div className="text-sm text-gray-600">Completed</div>
+              <div className="text-sm">Completed</div>
             </div>
           </div>
-        </div>
+        </Button>
       </div>
 
       {/* Bookings Table */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b">
-          <h2 className="text-xl font-semibold">All Bookings Overview</h2>
-          <p className="text-sm text-gray-600">Monitor all bookings and their current status</p>
+          <h2 className="text-xl font-semibold">
+            {activeFilter === "all" ? "All Bookings" : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}
+          </h2>
+          <p className="text-sm text-gray-600">
+            {activeFilter === "all" ? "Monitor all bookings and their current status" : `View ${activeFilter} bookings`}
+          </p>
         </div>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading bookings...</div>
-          ) : bookings.length === 0 ? (
-            <div className="p-8 text-center text-gray-500">No bookings found</div>
+          ) : getFilteredBookings().length === 0 ? (
+            <div className="p-8 text-center text-gray-500">No {activeFilter === "all" ? "" : activeFilter} bookings found</div>
           ) : (
             <Table>
               <TableHeader>
@@ -202,7 +229,7 @@ export default function DashboardAdmin() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.map((booking) => (
+                {getFilteredBookings().map((booking) => (
                   <TableRow key={booking.id}>
                     <TableCell>
                       <div>

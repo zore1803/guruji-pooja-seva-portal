@@ -17,7 +17,8 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
   const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
-  const [countdown, setCountdown] = useState(60); // Start with 60 second countdown
+  const [countdown, setCountdown] = useState(60);
+  const [skipVerification, setSkipVerification] = useState(false);
 
   useEffect(() => {
     if (countdown > 0) {
@@ -50,7 +51,7 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
         console.error("OTP verification error:", error);
         toast({
           title: "Verification Failed",
-          description: error.message,
+          description: error.message + " - Try resending the code or skip verification for now.",
           variant: "destructive",
         });
       } else {
@@ -94,7 +95,7 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
           description: "A new OTP has been sent to your email",
         });
         setCountdown(60);
-        setOtp(""); // Clear the current OTP input
+        setOtp("");
       }
     } catch (error) {
       console.error("Unexpected error during OTP resend:", error);
@@ -106,6 +107,14 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
     }
     
     setResendLoading(false);
+  };
+
+  const handleSkipVerification = () => {
+    toast({
+      title: "Verification Skipped",
+      description: "You can verify your email later from your profile settings",
+    });
+    onVerificationComplete();
   };
 
   return (
@@ -157,7 +166,16 @@ export default function OTPVerification({ email, onVerificationComplete, onBack 
           >
             {resendLoading ? "Sending..." : countdown > 0 ? `Resend in ${countdown}s` : "Resend Code"}
           </Button>
-          <div>
+          
+          <div className="flex flex-col gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={handleSkipVerification}
+              className="text-sm"
+            >
+              Skip Verification (Continue without email verification)
+            </Button>
             <Button
               type="button"
               variant="outline"

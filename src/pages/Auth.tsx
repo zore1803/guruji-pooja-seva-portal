@@ -15,7 +15,7 @@ import OTPVerification from "@/components/OTPVerification";
 export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const { adminLogin, loading: adminLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
@@ -24,60 +24,17 @@ export default function AuthPage() {
     email: "",
     password: "",
     name: "",
+    expertise: "",
+    address: "",
+    aadhar_number: "",
   });
 
   const role = searchParams.get("role") || "customer";
 
   useEffect(() => {
+    if (sessionLoading) return;
+
     if (user) {
-      // Auto redirect based on user type after login
-      const redirectToDashboard = async () => {
-        try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("user_type")
-            .eq("id", user.id)
-            .single();
-
-          let redirectPath = "/dashboard-customer"; // default
-
-          if (profile) {
-            switch (profile.user_type) {
-              case "admin":
-                redirectPath = "/dashboard-admin";
-                break;
-              case "pandit":
-                redirectPath = "/dashboard-pandit";
-                break;
-              default:
-                redirectPath = "/dashboard-customer";
-                break;
-            }
-          } else {
-            // Fallback based on role parameter
-            if (role === "admin") {
-              redirectPath = "/dashboard-admin";
-            } else if (role === "pandit") {
-              redirectPath = "/dashboard-pandit";
-            }
-          }
-
-          navigate(redirectPath, { replace: true });
-
-        } catch (error) {
-          console.error("Error fetching user profile:", error);
-          // Fallback to role-based navigation
-          let fallbackPath = "/dashboard-customer";
-          if (role === "admin") {
-            fallbackPath = "/dashboard-admin";
-          } else if (role === "pandit") {
-            fallbackPath = "/dashboard-pandit";
-          }
-          
-          navigate(fallbackPath, { replace: true });
-        }
-      };
-
       redirectToDashboard();
     }
 
@@ -85,7 +42,44 @@ export default function AuthPage() {
     if (role === "admin" && localStorage.getItem('isAdmin') === 'true') {
       navigate("/dashboard-admin", { replace: true });
     }
-  }, [user, navigate, role]);
+  }, [user, navigate, role, sessionLoading]);
+
+  const redirectToDashboard = async () => {
+    try {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", user.id)
+        .single();
+
+      let redirectPath = "/dashboard-customer";
+
+      if (profile) {
+        switch (profile.user_type) {
+          case "admin":
+            redirectPath = "/dashboard-admin";
+            break;
+          case "pandit":
+            redirectPath = "/dashboard-pandit";
+            break;
+          default:
+            redirectPath = "/dashboard-customer";
+            break;
+        }
+      } else if (role === "pandit") {
+        redirectPath = "/dashboard-pandit";
+      }
+
+      navigate(redirectPath, { replace: true });
+    } catch (error) {
+      console.error("Error fetching user profile:", error);
+      let fallbackPath = "/dashboard-customer";
+      if (role === "pandit") {
+        fallbackPath = "/dashboard-pandit";
+      }
+      navigate(fallbackPath, { replace: true });
+    }
+  };
 
   // Clear form when role changes
   useEffect(() => {
@@ -93,6 +87,9 @@ export default function AuthPage() {
       email: "",
       password: "",
       name: "",
+      expertise: "",
+      address: "",
+      aadhar_number: "",
     });
     setShowOTPVerification(false);
     setPendingEmail("");
@@ -100,21 +97,28 @@ export default function AuthPage() {
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (role === "admin") return; // Prevent admin signup
+    if (role === "admin") return;
     
     setLoading(true);
     
-    const { error } = await supabase.auth.signUp({
+    const signUpData = {
       email: formData.email,
       password: formData.password,
       options: {
-        emailRedirectTo: `${window.location.origin}/`,
+        emailRedirectTo: `${window.location.origin}/auth?role=${role}`,
         data: {
           name: formData.name,
           user_type: role,
+          ...(role === "pandit" && {
+            expertise: formData.expertise,
+            address: formData.address,
+            aadhar_number: formData.aadhar_number,
+          }),
         },
       },
-    });
+    };
+
+    const { error } = await supabase.auth.signUp(signUpData);
 
     if (error) {
       toast({
@@ -158,11 +162,6 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      toast({
-        title: "Success",
-        description: "Redirecting to dashboard...",
-      });
     }
     
     setLoading(false);
@@ -174,13 +173,23 @@ export default function AuthPage() {
       title: "Welcome!",
       description: "Your account has been verified successfully",
     });
-    // User will be automatically redirected by the useEffect hook
   };
 
   const handleBackToRegistration = () => {
     setShowOTPVerification(false);
     setPendingEmail("");
   };
+
+  if (sessionLoading) {
+    return (
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (showOTPVerification) {
     return (
@@ -210,7 +219,7 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent>
           {role === "admin" ? (
-            // Admin login form
+            // Admin login form - no credential hints
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -220,7 +229,7 @@ export default function AuthPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  placeholder="admin@gmail.com"
+                  placeholder="Enter admin email"
                 />
               </div>
               <div className="space-y-2">
@@ -231,15 +240,12 @@ export default function AuthPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  placeholder="admin123"
+                  placeholder="Enter admin password"
                 />
               </div>
               <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={adminLoading}>
                 {adminLoading ? "Signing in..." : "Sign In as Admin"}
               </Button>
-              <div className="text-center text-sm text-gray-600">
-                Use: admin@gmail.com / admin123
-              </div>
             </form>
           ) : (
             // Regular user login/signup
@@ -307,6 +313,46 @@ export default function AuthPage() {
                       required
                     />
                   </div>
+                  
+                  {role === "pandit" && (
+                    <>
+                      <div className="space-y-2">
+                        <Label htmlFor="expertise">Expertise/Specialization</Label>
+                        <Input
+                          id="expertise"
+                          type="text"
+                          value={formData.expertise}
+                          onChange={(e) => setFormData({ ...formData, expertise: e.target.value })}
+                          placeholder="e.g., Vedic Rituals, Marriage Ceremonies"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="address">Address</Label>
+                        <Input
+                          id="address"
+                          type="text"
+                          value={formData.address}
+                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                          placeholder="Complete address"
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="aadhar_number">Aadhar Number</Label>
+                        <Input
+                          id="aadhar_number"
+                          type="text"
+                          value={formData.aadhar_number}
+                          onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
+                          placeholder="12-digit Aadhar number"
+                          maxLength={12}
+                          required
+                        />
+                      </div>
+                    </>
+                  )}
+                  
                   <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={loading}>
                     {loading ? "Creating account..." : "Sign Up"}
                   </Button>
