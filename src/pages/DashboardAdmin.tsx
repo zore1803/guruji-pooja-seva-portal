@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { LogOut, Users, Calendar, CheckCircle, Clock } from "lucide-react";
+import { LogOut, Users, Calendar, CheckCircle, Clock, Database, HardDrive } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -55,6 +55,7 @@ export default function DashboardAdmin() {
   const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<string>("combined"); // combined, database, local
   const [stats, setStats] = useState({
     totalBookings: 0,
     pendingBookings: 0,
@@ -242,111 +243,147 @@ export default function DashboardAdmin() {
         </Button>
       </div>
 
+      {/* View Mode Selector */}
+      <div className="flex gap-2 mb-6">
+        <Button 
+          variant={viewMode === "combined" ? "default" : "outline"}
+          onClick={() => setViewMode("combined")}
+          size="sm"
+        >
+          <Calendar className="w-4 h-4 mr-2" />
+          Combined View
+        </Button>
+        <Button 
+          variant={viewMode === "database" ? "default" : "outline"}
+          onClick={() => setViewMode("database")}
+          size="sm"
+        >
+          <Database className="w-4 h-4 mr-2" />
+          Database Only ({dbBookings.length})
+        </Button>
+        <Button 
+          variant={viewMode === "local" ? "default" : "outline"}
+          onClick={() => setViewMode("local")}
+          size="sm"
+        >
+          <HardDrive className="w-4 h-4 mr-2" />
+          Recent Only ({localFilteredBookings.length})
+        </Button>
+      </div>
+
       {/* Bookings Table */}
       <div className="bg-white rounded-lg shadow">
         <div className="px-6 py-4 border-b">
           <h2 className="text-xl font-semibold">
             {activeFilter === "all" ? "All Bookings" : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}
+            {viewMode !== "combined" && ` - ${viewMode === "database" ? "Database" : "Recent"} View`}
           </h2>
           <p className="text-sm text-gray-600">
-            {activeFilter === "all" ? "Monitor all bookings and their current status" : `View ${activeFilter} bookings`}
+            {viewMode === "combined" ? "Monitor all bookings from both sources" : 
+             viewMode === "database" ? "Database bookings only" : 
+             "Recent localStorage bookings only"}
           </p>
         </div>
         <div className="overflow-x-auto">
           {loading ? (
             <div className="p-8 text-center text-gray-500">Loading bookings...</div>
-          ) : (dbBookings.length === 0 && localFilteredBookings.length === 0) ? (
-            <div className="p-8 text-center text-gray-500">No {activeFilter === "all" ? "" : activeFilter} bookings found</div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Source</TableHead>
-                  <TableHead>Created</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {/* Database Bookings */}
-                {dbBookings.map((booking) => (
-                  <TableRow key={`db-${booking.id}`}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{booking.customer_profile?.name}</div>
-                        <div className="text-sm text-gray-500">{booking.customer_profile?.email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
-                    <TableCell>
-                      {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : "Not set"}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">{booking.location || "Not specified"}</div>
-                        <div className="text-xs text-gray-500">{booking.address || ""}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        booking.status === "pending" ? "bg-orange-100 text-orange-800" :
-                        booking.status === "confirmed" ? "bg-green-100 text-green-800" :
-                        booking.status === "completed" ? "bg-purple-100 text-purple-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
-                        {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Unknown"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Database</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs text-gray-500">
-                        {format(new Date(booking.created_at), "PPp")}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {/* Local Storage Bookings */}
-                {localFilteredBookings.map((booking) => (
-                  <TableRow key={`local-${booking.id}`} className="bg-yellow-50">
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{booking.customer_name}</div>
-                        <div className="text-sm text-gray-500">{booking.customer_email}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{booking.service_name}</TableCell>
-                    <TableCell>
-                      {format(new Date(booking.tentative_date), "PPP")}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">{booking.location}</div>
-                        <div className="text-xs text-gray-500">{booking.address}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
-                        {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Recent</span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="text-xs text-gray-500">
-                        {format(new Date(booking.created_at), "PPp")}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+            <>
+              {(viewMode === "combined" || viewMode === "database") && dbBookings.length === 0 && 
+               (viewMode === "combined" || viewMode === "local") && localFilteredBookings.length === 0 ? (
+                <div className="p-8 text-center text-gray-500">No {activeFilter === "all" ? "" : activeFilter} bookings found</div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Customer</TableHead>
+                      <TableHead>Service</TableHead>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Location</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Source</TableHead>
+                      <TableHead>Created</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {/* Database Bookings */}
+                    {(viewMode === "combined" || viewMode === "database") && dbBookings.map((booking) => (
+                      <TableRow key={`db-${booking.id}`}>
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{booking.customer_profile?.name}</div>
+                            <div className="text-sm text-gray-500">{booking.customer_profile?.email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
+                        <TableCell>
+                          {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : "Not set"}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="text-sm">{booking.location || "Not specified"}</div>
+                            <div className="text-xs text-gray-500">{booking.address || ""}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
+                            booking.status === "pending" ? "bg-orange-100 text-orange-800" :
+                            booking.status === "confirmed" ? "bg-green-100 text-green-800" :
+                            booking.status === "completed" ? "bg-purple-100 text-purple-800" :
+                            "bg-gray-100 text-gray-800"
+                          }`}>
+                            {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1) || "Unknown"}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">Database</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs text-gray-500">
+                            {format(new Date(booking.created_at), "PPp")}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    
+                    {/* Local Storage Bookings */}
+                    {(viewMode === "combined" || viewMode === "local") && localFilteredBookings.map((booking) => (
+                      <TableRow key={`local-${booking.id}`} className="bg-yellow-50">
+                        <TableCell>
+                          <div>
+                            <div className="font-medium">{booking.customer_name}</div>
+                            <div className="text-sm text-gray-500">{booking.customer_email}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>{booking.service_name}</TableCell>
+                        <TableCell>
+                          {format(new Date(booking.tentative_date), "PPP")}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <div className="text-sm">{booking.location}</div>
+                            <div className="text-xs text-gray-500">{booking.address}</div>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <span className="inline-block px-2 py-1 rounded text-xs font-medium bg-orange-100 text-orange-800">
+                            {booking.status.charAt(0).toUpperCase() + booking.status.slice(1)}
+                          </span>
+                        </TableCell>
+                        <TableCell>
+                          <span className="text-xs bg-yellow-100 text-yellow-800 px-2 py-1 rounded">Recent</span>
+                        </TableCell>
+                        <TableCell>
+                          <div className="text-xs text-gray-500">
+                            {format(new Date(booking.created_at), "PPp")}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </>
           )}
         </div>
       </div>

@@ -18,36 +18,39 @@ export default function DashboardPandit() {
   const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) {
       navigate("/auth?role=pandit");
       return;
     }
-    let isMounted = true;
-    async function fetchProfile() {
-      let tries = 0;
-      while (tries < 5) {
-        const { data } = await supabase.from("profiles").select("*").eq("id", user.id).single();
+
+    const loadProfile = async () => {
+      try {
+        const { data } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
         if (data) {
-          if (isMounted) setProfile(data as any);
-          return;
+          setProfile(data);
         }
-        await new Promise(res => setTimeout(res, 400));
-        tries += 1;
+      } catch (error) {
+        console.error('Profile load error:', error);
+      } finally {
+        setLoading(false);
       }
-      if (isMounted) setProfile(null);
-    }
-    fetchProfile();
-    return () => { isMounted = false; };
+    };
+
+    loadProfile();
   }, [user, navigate]);
 
   useEffect(() => {
     if (!user) return;
     
     const fetchAssignedBookings = async () => {
-      setLoadingBookings(true);
       const { data, error } = await supabase
         .from("bookings")
         .select(`
@@ -67,7 +70,6 @@ export default function DashboardPandit() {
         }));
         setAssignedBookings(mapped);
       }
-      setLoadingBookings(false);
     };
 
     fetchAssignedBookings();
@@ -129,16 +131,24 @@ export default function DashboardPandit() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    navigate("/");
   };
 
-  if (!user) {
-    return <div className="flex items-center justify-center py-10">Loading...</div>;
-  }
-  if (!profile) {
+  if (loading) {
     return (
-      <div className="flex items-center justify-center py-10 text-gray-500 animate-pulse">
-        Creating your profile...
+      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading your dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user || !profile) {
+    return (
+      <div className="flex items-center justify-center py-10 text-gray-500">
+        Loading profile...
       </div>
     );
   }
@@ -167,9 +177,7 @@ export default function DashboardPandit() {
         
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-4">Assigned Bookings</h2>
-          {loadingBookings ? (
-            <div className="text-center text-gray-500">Loading bookings...</div>
-          ) : assignedBookings.length === 0 ? (
+          {assignedBookings.length === 0 ? (
             <div className="text-center text-gray-500">No assigned bookings found</div>
           ) : (
             <Table>

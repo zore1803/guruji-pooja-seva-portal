@@ -10,7 +10,6 @@ import { LogOut, Edit } from "lucide-react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
 import { format } from "date-fns";
 
-// Define booking display type with all required properties
 type Booking = {
   id: string;
   service_id: number | null;
@@ -24,41 +23,48 @@ type Booking = {
   assigned_pandit?: { name: string; expertise?: string } | null;
 };
 
+type LocalStorageBooking = {
+  id: string;
+  service_name: string;
+  service_id: number;
+  customer_name: string;
+  customer_email: string;
+  tentative_date: string;
+  to_date: string;
+  location: string;
+  address: string;
+  status: string;
+  created_at: string;
+};
+
 export default function DashboardCustomer() {
   const { user } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
-  const [profileLoading, setProfileLoading] = useState(true);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [loadingBookings, setLoadingBookings] = useState(false);
+  const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Handle user authentication and profile loading
   useEffect(() => {
     if (!user) {
       navigate("/auth?role=customer");
       return;
     }
 
-    const fetchProfile = async () => {
+    const loadProfile = async () => {
       try {
-        setProfileLoading(true);
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
           .single();
 
-        if (error && error.code !== 'PGRST116') {
-          console.error('Profile fetch error:', error);
-          return;
-        }
-
         if (data) {
           setProfile(data);
-        } else {
+        } else if (!error || error.code === 'PGRST116') {
           // Create profile if it doesn't exist
-          const { data: newProfile, error: createError } = await supabase
+          const { data: newProfile } = await supabase
             .from("profiles")
             .insert([{
               id: user.id,
@@ -70,42 +76,32 @@ export default function DashboardCustomer() {
             .select()
             .single();
 
-          if (createError) {
-            console.error('Profile creation error:', createError);
-          } else {
+          if (newProfile) {
             setProfile(newProfile);
           }
         }
       } catch (error) {
-        console.error('Unexpected error:', error);
+        console.error('Profile load error:', error);
       } finally {
-        setProfileLoading(false);
+        setLoading(false);
       }
     };
 
-    fetchProfile();
+    loadProfile();
   }, [user, navigate]);
 
-  // Load bookings separately
   useEffect(() => {
     if (!user) return;
     
     const loadBookings = async () => {
-      setLoadingBookings(true);
       try {
-        const { data, error } = await supabase
+        const { data } = await supabase
           .from("bookings")
           .select("*, services:service_id (*), assigned_pandit:pandit_id (*)")
           .eq("created_by", user.id)
-          .in("status", ["pending", "assigned", "confirmed", "completed"])
           .order("created_at", { ascending: false });
 
-        if (error) {
-          console.error('Bookings fetch error:', error);
-          return;
-        }
-
-        if (Array.isArray(data)) {
+        if (data) {
           const mapped = data.map((row: any) => ({
             id: row.id,
             service_id: row.service_id,
@@ -122,12 +118,28 @@ export default function DashboardCustomer() {
         }
       } catch (error) {
         console.error('Booking load error:', error);
-      } finally {
-        setLoadingBookings(false);
       }
     };
 
     loadBookings();
+
+    // Load localStorage bookings for this user
+    const loadLocalBookings = () => {
+      try {
+        const stored = localStorage.getItem('recentBookings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          const userBookings = parsed.filter((booking: LocalStorageBooking) => 
+            booking.customer_email === user.email
+          );
+          setLocalBookings(userBookings);
+        }
+      } catch (error) {
+        console.error('Error loading local bookings:', error);
+      }
+    };
+
+    loadLocalBookings();
   }, [user]);
 
   const handleProfileUpdated = (updated: any) => {
@@ -136,30 +148,47 @@ export default function DashboardCustomer() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    window.location.href = "/";
+    navigate("/");
   };
 
-  if (!user) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading...</p>
+          <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  if (profileLoading) {
-    return (
-      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Setting up your profile...</p>
-        </div>
-      </div>
-    );
+  if (!user) {
+    return null;
   }
+
+  const allBookings = [...bookings, ...localBookings.map(lb => ({
+    id: lb.id,
+    service_id: lb.service_id,
+    tentative_date: lb.tentative_date,
+    status: lb.status,
+    invoice_url: null,
+    created_at: lb.created_at,
+    location: lb.location,
+    address: lb.address,
+    service: { name: lb.service_name },
+    assigned_pandit: null,
+  }))];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "pending": return "bg-orange-100 text-orange-800";
+      case "assigned": return "bg-blue-100 text-blue-800";
+      case "confirmed": return "bg-green-100 text-green-800";
+      case "completed": return "bg-purple-100 text-purple-800";
+      case "cancelled": return "bg-red-100 text-red-800";
+      default: return "bg-gray-100 text-gray-800";
+    }
+  };
 
   return (
     <div className="pt-8 px-5 flex-col md:flex-row flex items-start gap-8">
@@ -193,9 +222,7 @@ export default function DashboardCustomer() {
         </div>
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-2">Your Bookings</h2>
-          {loadingBookings ? (
-            <div className="text-muted-foreground">Loading your bookings...</div>
-          ) : bookings.length === 0 ? (
+          {allBookings.length === 0 ? (
             <div className="text-muted-foreground">No bookings found.</div>
           ) : (
             <Table>
@@ -212,52 +239,36 @@ export default function DashboardCustomer() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {bookings.map((b) => {
-                  let location = b.location || "-";
-                  let address = b.address || "-";
-                  
-                  const getStatusColor = (status: string) => {
-                    switch (status) {
-                      case "pending": return "bg-orange-100 text-orange-800";
-                      case "assigned": return "bg-blue-100 text-blue-800";
-                      case "confirmed": return "bg-green-100 text-green-800";
-                      case "completed": return "bg-purple-100 text-purple-800";
-                      case "cancelled": return "bg-red-100 text-red-800";
-                      default: return "bg-gray-100 text-gray-800";
-                    }
-                  };
-
-                  return (
-                    <TableRow key={b.id}>
-                      <TableCell className="font-medium">
-                        {b.service?.name || "Unknown Service"}
-                      </TableCell>
-                      <TableCell>
-                        {b.tentative_date ? format(new Date(b.tentative_date), "PPP") : "--"}
-                      </TableCell>
-                      <TableCell>{location}</TableCell>
-                      <TableCell>{address}</TableCell>
-                      <TableCell>
-                        <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(b.status || "pending")}`}>
-                          {b.status?.charAt(0).toUpperCase() + b.status?.slice(1) || "Pending"}
-                        </span>
-                      </TableCell>
-                      <TableCell>
-                        {b.assigned_pandit ? (
-                          <div className="text-sm">
-                            <div className="font-medium">{b.assigned_pandit.name}</div>
-                            <div className="text-gray-500 text-xs">{b.assigned_pandit.expertise || "Pandit"}</div>
-                          </div>
-                        ) : (
-                          <span className="text-gray-400 text-sm">Not assigned</span>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        {b.created_at ? format(new Date(b.created_at), "PPp") : "--"}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
+                {allBookings.map((b) => (
+                  <TableRow key={b.id}>
+                    <TableCell className="font-medium">
+                      {b.service?.name || "Unknown Service"}
+                    </TableCell>
+                    <TableCell>
+                      {b.tentative_date ? format(new Date(b.tentative_date), "PPP") : "--"}
+                    </TableCell>
+                    <TableCell>{b.location || "-"}</TableCell>
+                    <TableCell>{b.address || "-"}</TableCell>
+                    <TableCell>
+                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(b.status || "pending")}`}>
+                        {b.status?.charAt(0).toUpperCase() + b.status?.slice(1) || "Pending"}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      {b.assigned_pandit ? (
+                        <div className="text-sm">
+                          <div className="font-medium">{b.assigned_pandit.name}</div>
+                          <div className="text-gray-500 text-xs">{b.assigned_pandit.expertise || "Pandit"}</div>
+                        </div>
+                      ) : (
+                        <span className="text-gray-400 text-sm">Not assigned</span>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      {b.created_at ? format(new Date(b.created_at), "PPp") : "--"}
+                    </TableCell>
+                  </TableRow>
+                ))}
               </TableBody>
             </Table>
           )}
