@@ -10,45 +10,26 @@ export function useAdminAuth() {
     setLoading(true);
     
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
+      // Check hardcoded admin credentials
+      if (email === "admin@gmail.com" && password === "admin123") {
+        // Create a mock admin session by setting a flag in localStorage
+        localStorage.setItem('isAdmin', 'true');
+        localStorage.setItem('adminEmail', email);
+        
+        toast({
+          title: "Success",
+          description: "Admin login successful",
+        });
 
-      if (error) {
+        return { success: true, data: { user: { email, id: 'admin-user' } } };
+      } else {
         toast({
           title: "Login Failed",
-          description: error.message,
+          description: "Invalid admin credentials",
           variant: "destructive",
         });
-        return { success: false, error };
+        return { success: false, error: new Error("Invalid credentials") };
       }
-
-      // Check if user is admin
-      if (data.user) {
-        const { data: profile } = await supabase
-          .from("profiles")
-          .select("user_type")
-          .eq("id", data.user.id)
-          .single();
-
-        if (!profile || profile.user_type !== "admin") {
-          await supabase.auth.signOut();
-          toast({
-            title: "Access Denied",
-            description: "Admin access required",
-            variant: "destructive",
-          });
-          return { success: false, error: new Error("Not an admin user") };
-        }
-      }
-
-      toast({
-        title: "Success",
-        description: "Admin login successful",
-      });
-
-      return { success: true, data };
     } catch (error) {
       console.error("Admin login error:", error);
       toast({
@@ -62,38 +43,8 @@ export function useAdminAuth() {
     }
   };
 
-  const createAdminUser = async () => {
-    try {
-      // Use the database function to create admin user safely
-      const { error } = await supabase.rpc('create_admin_user_safe');
-      
-      if (error) {
-        console.error("Error creating admin user:", error);
-        toast({
-          title: "Error",
-          description: error.message,
-          variant: "destructive",
-        });
-        return;
-      }
-
-      toast({
-        title: "Success",
-        description: "Admin user setup completed. You can now log in with admin@gmail.com / admin123",
-      });
-    } catch (error) {
-      console.error("Error in createAdminUser:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create admin user",
-        variant: "destructive",
-      });
-    }
-  };
-
   return {
     adminLogin,
-    createAdminUser,
     loading,
   };
 }

@@ -16,11 +16,10 @@ export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { user } = useSession();
-  const { adminLogin, createAdminUser, loading: adminLoading } = useAdminAuth();
+  const { adminLogin, loading: adminLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
-  const [isRedirecting, setIsRedirecting] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -30,9 +29,7 @@ export default function AuthPage() {
   const role = searchParams.get("role") || "customer";
 
   useEffect(() => {
-    if (user && !isRedirecting) {
-      setIsRedirecting(true);
-      
+    if (user) {
       // Auto redirect based on user type after login
       const redirectToDashboard = async () => {
         try {
@@ -65,10 +62,7 @@ export default function AuthPage() {
             }
           }
 
-          // Small delay to prevent flickering
-          setTimeout(() => {
-            navigate(redirectPath, { replace: true });
-          }, 100);
+          navigate(redirectPath, { replace: true });
 
         } catch (error) {
           console.error("Error fetching user profile:", error);
@@ -80,15 +74,18 @@ export default function AuthPage() {
             fallbackPath = "/dashboard-pandit";
           }
           
-          setTimeout(() => {
-            navigate(fallbackPath, { replace: true });
-          }, 100);
+          navigate(fallbackPath, { replace: true });
         }
       };
 
       redirectToDashboard();
     }
-  }, [user, navigate, role, isRedirecting]);
+
+    // Check if admin is logged in via localStorage
+    if (role === "admin" && localStorage.getItem('isAdmin') === 'true') {
+      navigate("/dashboard-admin", { replace: true });
+    }
+  }, [user, navigate, role]);
 
   // Clear form when role changes
   useEffect(() => {
@@ -143,11 +140,7 @@ export default function AuthPage() {
     if (role === "admin") {
       const result = await adminLogin(formData.email, formData.password);
       if (result.success) {
-        // Navigation will happen automatically via useEffect
-        toast({
-          title: "Success",
-          description: "Redirecting to admin dashboard...",
-        });
+        navigate("/dashboard-admin", { replace: true });
       }
       return;
     }
@@ -175,10 +168,6 @@ export default function AuthPage() {
     setLoading(false);
   };
 
-  const handleCreateAdmin = async () => {
-    await createAdminUser();
-  };
-
   const handleOTPVerificationComplete = () => {
     setShowOTPVerification(false);
     toast({
@@ -192,17 +181,6 @@ export default function AuthPage() {
     setShowOTPVerification(false);
     setPendingEmail("");
   };
-
-  // Show a simple loading state while redirecting
-  if (user && isRedirecting) {
-    return (
-      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center p-4">
-        <div className="text-center">
-          <div className="text-orange-600 text-lg font-medium">Redirecting to dashboard...</div>
-        </div>
-      </div>
-    );
-  }
 
   if (showOTPVerification) {
     return (
@@ -242,7 +220,7 @@ export default function AuthPage() {
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   required
-                  placeholder="Enter admin email"
+                  placeholder="admin@gmail.com"
                 />
               </div>
               <div className="space-y-2">
@@ -253,16 +231,14 @@ export default function AuthPage() {
                   value={formData.password}
                   onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                   required
-                  placeholder="Enter admin password"
+                  placeholder="admin123"
                 />
               </div>
               <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={adminLoading}>
                 {adminLoading ? "Signing in..." : "Sign In as Admin"}
               </Button>
-              <div className="text-center">
-                <Button type="button" variant="outline" onClick={handleCreateAdmin} className="text-sm">
-                  Create Admin User (Dev Only)
-                </Button>
+              <div className="text-center text-sm text-gray-600">
+                Use: admin@gmail.com / admin123
               </div>
             </form>
           ) : (

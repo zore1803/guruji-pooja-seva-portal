@@ -1,5 +1,4 @@
 
-import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -37,9 +36,7 @@ type Booking = {
 };
 
 export default function DashboardAdmin() {
-  const { user } = useSession();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
@@ -49,35 +46,17 @@ export default function DashboardAdmin() {
     completedBookings: 0,
   });
 
-  // Check if user is admin
+  // Check if admin is logged in
   useEffect(() => {
-    if (!user) {
+    const isAdmin = localStorage.getItem('isAdmin');
+    if (!isAdmin) {
       navigate("/auth?role=admin");
       return;
     }
-    
-    const fetchAdminProfile = async () => {
-      const { data: profileData } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (!profileData || profileData.user_type !== "admin") {
-        navigate("/");
-        return;
-      }
-      
-      setProfile(profileData);
-    };
-
-    fetchAdminProfile();
-  }, [user, navigate]);
+  }, [navigate]);
 
   // Fetch bookings data for admin overview
   useEffect(() => {
-    if (!profile || profile.user_type !== "admin") return;
-
     const fetchData = async () => {
       setLoading(true);
       
@@ -123,20 +102,18 @@ export default function DashboardAdmin() {
     };
 
     fetchData();
-  }, [profile]);
+  }, []);
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    window.location.href = "/";
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('adminEmail');
+    navigate("/");
   };
 
-  if (!user || !profile) {
-    return <div className="flex items-center justify-center py-10">Loading...</div>;
-  }
-
-  if (profile.user_type !== "admin") {
-    return <div className="flex items-center justify-center py-10">Access denied</div>;
-  }
+  const adminProfile = {
+    name: "Administrator",
+    email: localStorage.getItem('adminEmail') || "admin@gmail.com"
+  };
 
   return (
     <div className="pt-8 px-5">
@@ -147,11 +124,10 @@ export default function DashboardAdmin() {
         </div>
         <div className="flex items-center gap-4">
           <Avatar className="w-10 h-10">
-            <AvatarImage src={profile.profile_image_url || undefined} alt={profile.name} />
-            <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+            <AvatarFallback>{adminProfile.name.charAt(0).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div>
-            <div className="font-medium">{profile.name}</div>
+            <div className="font-medium">{adminProfile.name}</div>
             <div className="text-sm text-gray-500">Administrator</div>
           </div>
           <Button onClick={handleLogout} variant="outline" size="sm">
