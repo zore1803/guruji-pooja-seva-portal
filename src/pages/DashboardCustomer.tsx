@@ -1,26 +1,15 @@
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import EditCustomerProfileModal from "@/components/EditCustomerProfileModal";
-import { LogOut, Edit } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
-import { format } from "date-fns";
+import { Edit } from "lucide-react";
+import DashboardHeader from "@/components/DashboardHeader";
+import DashboardStats from "@/components/DashboardStats";
+import BookingsTable from "@/components/BookingsTable";
 
-type Booking = {
-  id: string;
-  service_id: number | null;
-  tentative_date: string | null;
-  status: string | null;
-  invoice_url: string | null;
-  created_at: string;
-  location: string | null;
-  address: string | null;
-  service?: { name: string } | null;
-  assigned_pandit?: { name: string; expertise?: string } | null;
-};
+import { Booking } from "@/components/BookingsTable";
 
 type LocalStorageBooking = {
   id: string;
@@ -45,19 +34,17 @@ export default function DashboardCustomer() {
   const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
 
   // Handle authentication state changes
   useEffect(() => {
-    // Don't do anything while session is still loading
     if (sessionLoading) return;
     
-    // If no user after session loading is complete, redirect to auth
     if (!user) {
       navigate("/auth?role=customer", { replace: true });
       return;
     }
 
-    // User is authenticated, proceed with loading profile and data
     setInitialLoad(false);
   }, [user, sessionLoading, navigate]);
 
@@ -77,7 +64,6 @@ export default function DashboardCustomer() {
         if (data) {
           setProfile(data);
         } else if (!error || error.code === 'PGRST116') {
-          // Create profile if it doesn't exist
           const { data: newProfile } = await supabase
             .from("profiles")
             .insert([{
@@ -136,7 +122,6 @@ export default function DashboardCustomer() {
       }
     };
 
-    // Load localStorage bookings for this user
     const loadLocalBookings = () => {
       try {
         const stored = localStorage.getItem('recentBookings');
@@ -166,15 +151,13 @@ export default function DashboardCustomer() {
       navigate("/", { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
-      // Force navigation even if logout fails
       navigate("/", { replace: true });
     }
   };
 
-  // Show loading while session is loading or during initial load
   if (sessionLoading || initialLoad || loading) {
     return (
-      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your dashboard...</p>
@@ -183,12 +166,11 @@ export default function DashboardCustomer() {
     );
   }
 
-  // Don't render anything if user is not authenticated
   if (!user) {
     return null;
   }
 
-  const allBookings = [...bookings, ...localBookings.map(lb => ({
+  const allBookings: Booking[] = [...bookings, ...localBookings.map(lb => ({
     id: lb.id,
     service_id: lb.service_id,
     tentative_date: lb.tentative_date,
@@ -199,109 +181,95 @@ export default function DashboardCustomer() {
     address: lb.address,
     service: { name: lb.service_name },
     assigned_pandit: null,
-  }))];
+  } as Booking))];
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "pending": return "bg-orange-100 text-orange-800";
-      case "assigned": return "bg-blue-100 text-blue-800";
-      case "confirmed": return "bg-green-100 text-green-800";
-      case "completed": return "bg-purple-100 text-purple-800";
-      case "cancelled": return "bg-red-100 text-red-800";
-      default: return "bg-gray-100 text-gray-800";
-    }
+  const stats = {
+    totalBookings: allBookings.length,
+    pendingBookings: allBookings.filter(b => b.status === "pending").length,
+    confirmedBookings: allBookings.filter(b => b.status === "confirmed").length,
+    completedBookings: allBookings.filter(b => b.status === "completed").length,
   };
 
+  const filteredBookings = activeFilter === "all" 
+    ? allBookings 
+    : allBookings.filter(booking => booking.status === activeFilter);
+
   return (
-    <div className="pt-8 px-5 flex-col md:flex-row flex items-start gap-8">
-      <div className="w-[190px] flex flex-col items-center">
-        <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={profile?.profile_image_url} alt={profile?.name} />
-          <AvatarFallback>{profile?.name?.charAt(0)?.toUpperCase() || 'U'}</AvatarFallback>
-        </Avatar>
-        <span className="font-semibold">{profile?.name || 'User'}</span>
-        <span className="text-xs text-gray-500">Customer</span>
-        <div className="mt-4 flex w-full flex-col gap-2">
-          <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
-            <Edit className="w-4 h-4" /> Edit Profile
-          </Button>
-          <Button onClick={handleLogout} variant="destructive" className="w-full flex items-center gap-2">
-            <LogOut className="w-4 h-4" /> Sign Out
-          </Button>
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100">
+      <div className="pt-8 px-5 pb-10">
+        <DashboardHeader
+          title="Customer Dashboard"
+          subtitle="Browse and book pooja services, or manage your bookings"
+          profile={{
+            name: profile?.name || 'User',
+            email: user.email,
+            profile_image_url: profile?.profile_image_url
+          }}
+          role="Customer"
+          onLogout={handleLogout}
+          showBookButton={true}
+          onBookNow={() => navigate("/services")}
+        />
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Profile Sidebar */}
+          <div className="lg:w-64 flex-shrink-0">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-orange-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-orange-700">
+                    {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-lg">{profile?.name || 'User'}</h3>
+                <p className="text-sm text-gray-500">Customer Account</p>
+              </div>
+              
+              <Button 
+                onClick={() => setOpenEditModal(true)} 
+                variant="outline" 
+                className="w-full flex items-center gap-2 hover:scale-105 transition-transform"
+              >
+                <Edit className="w-4 h-4" /> 
+                Edit Profile
+              </Button>
+            </div>
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <DashboardStats
+              stats={stats}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
+
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {activeFilter === "all" ? "All Bookings" : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Track your booking history and current requests
+                </p>
+              </div>
+              
+              <BookingsTable
+                bookings={filteredBookings}
+                loading={false}
+                role="customer"
+              />
+            </div>
+          </div>
         </div>
+
+        <EditCustomerProfileModal
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          profile={profile}
+          onProfileUpdated={handleProfileUpdated}
+        />
       </div>
-      <div className="flex-1 w-full">
-        <h1 className="text-2xl font-bold mb-2">Customer Dashboard</h1>
-        <p>Browse and book pooja services below, or manage your bookings.</p>
-        <div className="flex justify-start my-4">
-          <Button
-            variant="default"
-            onClick={() => navigate("/services")}
-            className="bg-orange-600 hover:bg-orange-700 text-white font-semibold shadow"
-          >
-            Book Now
-          </Button>
-        </div>
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-2">Your Bookings</h2>
-          {allBookings.length === 0 ? (
-            <div className="text-muted-foreground">No bookings found.</div>
-          ) : (
-            <Table>
-              <TableCaption>Your booking history and current requests</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Address</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Assigned Pandit</TableHead>
-                  <TableHead>Requested At</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {allBookings.map((b) => (
-                  <TableRow key={b.id}>
-                    <TableCell className="font-medium">
-                      {b.service?.name || "Unknown Service"}
-                    </TableCell>
-                    <TableCell>
-                      {b.tentative_date ? format(new Date(b.tentative_date), "PPP") : "--"}
-                    </TableCell>
-                    <TableCell>{b.location || "-"}</TableCell>
-                    <TableCell>{b.address || "-"}</TableCell>
-                    <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${getStatusColor(b.status || "pending")}`}>
-                        {b.status?.charAt(0).toUpperCase() + b.status?.slice(1) || "Pending"}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {b.assigned_pandit ? (
-                        <div className="text-sm">
-                          <div className="font-medium">{b.assigned_pandit.name}</div>
-                          <div className="text-gray-500 text-xs">{b.assigned_pandit.expertise || "Pandit"}</div>
-                        </div>
-                      ) : (
-                        <span className="text-gray-400 text-sm">Not assigned</span>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {b.created_at ? format(new Date(b.created_at), "PPp") : "--"}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </div>
-      </div>
-      <EditCustomerProfileModal
-        open={openEditModal}
-        onClose={() => setOpenEditModal(false)}
-        profile={profile}
-        onProfileUpdated={handleProfileUpdated}
-      />
     </div>
   );
 }

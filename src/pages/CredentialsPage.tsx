@@ -59,11 +59,17 @@ export default function CredentialsPage() {
     setLoading(true);
 
     try {
-      // Verify service exists - use original service ID (might be UUID)
+      // Convert service ID to integer for database lookup
+      const serviceIdAsNumber = parseInt(serviceId, 10);
+      if (isNaN(serviceIdAsNumber)) {
+        throw new Error("Invalid service ID");
+      }
+
+      // Verify service exists using integer ID
       const { data: existingService, error: serviceError } = await supabase
         .from("services")
         .select("id, name")
-        .eq("id", serviceId)
+        .eq("id", serviceIdAsNumber)
         .single();
 
       if (serviceError || !existingService) {
@@ -74,7 +80,7 @@ export default function CredentialsPage() {
       // Create booking with proper integer handling
       const bookingPayload = {
         created_by: user.id,
-        service_id: serviceIdForBooking, // Use integer ID
+        service_id: serviceIdAsNumber, // Use integer ID
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
         status: "pending",
         location: data.location,
@@ -98,7 +104,7 @@ export default function CredentialsPage() {
       const bookingDetails = {
         id: bookingResult.id,
         service_name: existingService.name,
-        service_id: serviceIdNum,
+        service_id: serviceIdAsNumber,
         customer_name: profile?.name || user.email,
         customer_email: user.email,
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),

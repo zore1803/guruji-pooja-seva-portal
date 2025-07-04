@@ -1,15 +1,15 @@
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import EditPanditProfileModal from "@/components/EditPanditProfileModal";
 import PanditCompletedPoojasTable from "@/components/PanditCompletedPoojasTable";
-import { LogOut, Edit, CheckCircle, X } from "lucide-react";
+import { Edit, Award, Star } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCaption } from "@/components/ui/table";
-import { format } from "date-fns";
+import DashboardHeader from "@/components/DashboardHeader";
+import DashboardStats from "@/components/DashboardStats";
+import BookingsTable from "@/components/BookingsTable";
 
 export default function DashboardPandit() {
   const { user, loading: sessionLoading } = useSession();
@@ -19,19 +19,17 @@ export default function DashboardPandit() {
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<string>("all");
 
   // Handle authentication state changes
   useEffect(() => {
-    // Don't do anything while session is still loading
     if (sessionLoading) return;
     
-    // If no user after session loading is complete, redirect to auth
     if (!user) {
       navigate("/auth?role=pandit", { replace: true });
       return;
     }
 
-    // User is authenticated, proceed with loading profile and data
     setInitialLoad(false);
   }, [user, sessionLoading, navigate]);
 
@@ -52,7 +50,6 @@ export default function DashboardPandit() {
           setProfile(data);
         } else {
           console.error('Profile not found:', error);
-          // Optionally redirect to profile creation or show error
         }
       } catch (error) {
         console.error('Profile load error:', error);
@@ -123,7 +120,7 @@ export default function DashboardPandit() {
         description: "Booking accepted successfully",
       });
 
-      // Refresh bookings instead of full page reload
+      // Refresh bookings
       const { data } = await supabase
         .from("bookings")
         .select(`
@@ -178,7 +175,7 @@ export default function DashboardPandit() {
         description: "Booking rejected successfully",
       });
 
-      // Refresh bookings instead of full page reload
+      // Refresh bookings
       const { data } = await supabase
         .from("bookings")
         .select(`
@@ -218,159 +215,150 @@ export default function DashboardPandit() {
       navigate("/", { replace: true });
     } catch (error) {
       console.error('Logout error:', error);
-      // Force navigation even if logout fails
       navigate("/", { replace: true });
     }
   };
 
-  // Show loading while session is loading or during initial load
   if (sessionLoading || initialLoad || loading) {
     return (
-      <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-600 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
-  // Don't render anything if user is not authenticated
-  if (!user) {
-    return null;
-  }
-
-  // Show profile loading state if profile is not yet loaded
-  if (!profile) {
+  if (!user || !profile) {
     return (
-      <div className="flex items-center justify-center py-10 text-gray-500">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center text-gray-500">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-2"></div>
           <p>Loading profile...</p>
         </div>
       </div>
     );
   }
 
+  const stats = {
+    totalBookings: assignedBookings.length,
+    pendingBookings: assignedBookings.filter(b => b.status === "assigned").length,
+    confirmedBookings: assignedBookings.filter(b => b.status === "confirmed").length,
+    completedBookings: assignedBookings.filter(b => b.status === "completed").length,
+  };
+
+  const filteredBookings = activeFilter === "all" 
+    ? assignedBookings 
+    : assignedBookings.filter(booking => booking.status === activeFilter);
+
   return (
-    <div className="pt-8 px-5 flex-col md:flex-row flex items-start gap-8">
-      <div className="w-[190px] flex flex-col items-center">
-        <Avatar className="w-24 h-24 mb-2">
-          <AvatarImage src={profile.profile_image_url} alt={profile.name} />
-          <AvatarFallback>{profile.name?.charAt(0)?.toUpperCase() || 'P'}</AvatarFallback>
-        </Avatar>
-        <span className="font-semibold">{profile.name}</span>
-        <span className="text-xs text-gray-500">Pandit</span>
-        <div className="mt-4 flex w-full flex-col gap-2">
-          <Button onClick={() => setOpenEditModal(true)} variant="outline" className="w-full flex items-center gap-2">
-            <Edit className="w-4 h-4" /> Edit Profile
-          </Button>
-          <Button onClick={handleLogout} variant="destructive" className="w-full flex items-center gap-2">
-            <LogOut className="w-4 h-4" /> Sign Out
-          </Button>
-        </div>
-      </div>
-      <div className="flex-1 w-full">
-        <h1 className="text-2xl font-bold mb-2">Pandit Dashboard</h1>
-        <p>Manage your assigned bookings and profile information.</p>
-        
-        <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-4">Assigned Bookings</h2>
-          {assignedBookings.length === 0 ? (
-            <div className="text-center text-gray-500 py-8">
-              <p>No assigned bookings found</p>
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="pt-8 px-5 pb-10">
+        <DashboardHeader
+          title="Pandit Dashboard"
+          subtitle="Manage your assigned bookings and profile information"
+          profile={{
+            name: profile.name,
+            email: user.email,
+            profile_image_url: profile.profile_image_url
+          }}
+          role="Pandit"
+          onLogout={handleLogout}
+        />
+
+        <div className="flex flex-col lg:flex-row gap-8">
+          {/* Profile Sidebar */}
+          <div className="lg:w-64 flex-shrink-0">
+            <div className="bg-white rounded-xl shadow-md p-6">
+              <div className="text-center mb-6">
+                <div className="w-20 h-20 bg-blue-100 rounded-full mx-auto mb-3 flex items-center justify-center">
+                  <span className="text-2xl font-bold text-blue-700">
+                    {profile.name?.charAt(0)?.toUpperCase() || 'P'}
+                  </span>
+                </div>
+                <h3 className="font-semibold text-lg">{profile.name}</h3>
+                <p className="text-sm text-gray-500">Pandit</p>
+                {profile.expertise && (
+                  <div className="mt-2 flex items-center justify-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500" />
+                    <span className="text-xs text-gray-600">{profile.expertise}</span>
+                  </div>
+                )}
+              </div>
+              
+              <div className="space-y-3">
+                <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg">
+                  <div className="flex items-center gap-2">
+                    <Award className="w-4 h-4 text-blue-600" />
+                    <span className="text-sm font-medium">Verified</span>
+                  </div>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    profile.is_verified ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                  }`}>
+                    {profile.is_verified ? 'Yes' : 'Pending'}
+                  </span>
+                </div>
+                
+                <Button 
+                  onClick={() => setOpenEditModal(true)} 
+                  variant="outline" 
+                  className="w-full flex items-center gap-2 hover:scale-105 transition-transform"
+                >
+                  <Edit className="w-4 h-4" /> 
+                  Edit Profile
+                </Button>
+              </div>
             </div>
-          ) : (
-            <Table>
-              <TableCaption>Your assigned bookings</TableCaption>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Service</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Location</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Assigned At</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {assignedBookings.map((booking) => (
-                  <TableRow key={booking.id}>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{booking.customer_profile?.name || 'Unknown'}</div>
-                        <div className="text-sm text-gray-500">{booking.customer_profile?.email || 'No email'}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
-                    <TableCell>
-                      {booking.tentative_date ? format(new Date(booking.tentative_date), "PPP") : "Not set"}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="text-sm">{booking.location || "Not specified"}</div>
-                        <div className="text-xs text-gray-500">{booking.address || ""}</div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`inline-block px-2 py-1 rounded text-xs font-medium ${
-                        booking.status === "assigned" ? "bg-blue-100 text-blue-800" :
-                        booking.status === "confirmed" ? "bg-green-100 text-green-800" :
-                        booking.status === "completed" ? "bg-purple-100 text-purple-800" :
-                        "bg-gray-100 text-gray-800"
-                      }`}>
-                        {booking.status?.charAt(0).toUpperCase() + booking.status?.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      {booking.assigned_at ? format(new Date(booking.assigned_at), "PPp") : "--"}
-                    </TableCell>
-                    <TableCell>
-                      {booking.status === "assigned" && (
-                        <div className="flex gap-2">
-                          <Button
-                            size="sm"
-                            onClick={() => handleAcceptBooking(booking.id)}
-                            className="bg-green-600 hover:bg-green-700"
-                          >
-                            <CheckCircle className="w-4 h-4 mr-1" />
-                            Accept
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="destructive"
-                            onClick={() => handleRejectBooking(booking.id)}
-                          >
-                            <X className="w-4 h-4 mr-1" />
-                            Reject
-                          </Button>
-                        </div>
-                      )}
-                      {booking.status === "confirmed" && (
-                        <span className="text-green-600 text-sm">Accepted</span>
-                      )}
-                      {booking.status === "completed" && (
-                        <span className="text-purple-600 text-sm">Completed</span>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          </div>
+
+          {/* Main Content */}
+          <div className="flex-1">
+            <DashboardStats
+              stats={stats}
+              activeFilter={activeFilter}
+              onFilterChange={setActiveFilter}
+            />
+
+            <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <h2 className="text-xl font-semibold text-gray-800">
+                  {activeFilter === "all" ? "All Assignments" : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Assignments`}
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Manage your assigned bookings and customer requests
+                </p>
+              </div>
+              
+              <BookingsTable
+                bookings={filteredBookings}
+                loading={false}
+                role="pandit"
+                onAcceptBooking={handleAcceptBooking}
+                onRejectBooking={handleRejectBooking}
+                showActions={true}
+              />
+            </div>
+
+            <div className="bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="px-6 py-4 border-b bg-gray-50">
+                <h2 className="text-xl font-semibold text-gray-800">Completed Poojas</h2>
+                <p className="text-sm text-gray-600 mt-1">
+                  Your completed ceremony history
+                </p>
+              </div>
+              <PanditCompletedPoojasTable panditId={user.id} />
+            </div>
+          </div>
         </div>
 
-        <div className="mt-8">
-          <PanditCompletedPoojasTable panditId={user.id} />
-        </div>
+        <EditPanditProfileModal
+          open={openEditModal}
+          onClose={() => setOpenEditModal(false)}
+          profile={profile}
+          onProfileUpdated={handleProfileUpdated}
+        />
       </div>
-      <EditPanditProfileModal
-        open={openEditModal}
-        onClose={() => setOpenEditModal(false)}
-        profile={profile}
-        onProfileUpdated={handleProfileUpdated}
-      />
     </div>
   );
 }

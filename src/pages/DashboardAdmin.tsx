@@ -289,8 +289,9 @@ export default function DashboardAdmin() {
             <div className="p-8 text-center text-gray-500">Loading bookings...</div>
           ) : (
             <>
-              {(viewMode === "combined" || viewMode === "database") && dbBookings.length === 0 && 
-               (viewMode === "combined" || viewMode === "local") && localFilteredBookings.length === 0 ? (
+              {(viewMode === "database" && dbBookings.length === 0) ||
+               (viewMode === "local" && localFilteredBookings.length === 0) ||
+               (viewMode === "combined" && dbBookings.length === 0 && localFilteredBookings.length === 0) ? (
                 <div className="p-8 text-center text-gray-500">No {activeFilter === "all" ? "" : activeFilter} bookings found</div>
               ) : (
                 <Table>
