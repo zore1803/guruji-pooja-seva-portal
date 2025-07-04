@@ -44,16 +44,8 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Convert service ID to number properly
-    const serviceIdNum = parseInt(id, 10);
-    if (isNaN(serviceIdNum)) {
-      toast({
-        title: "Invalid Service",
-        description: "Service ID is not valid.",
-        variant: "destructive",
-      });
-      return;
-    }
+    // Keep service ID as string - it might be a UUID in the services table
+    const serviceId = id;
 
     if (!data.fromDate || !data.toDate) {
       toast({
@@ -67,21 +59,22 @@ export default function CredentialsPage() {
     setLoading(true);
 
     try {
-      // Verify service exists
+      // Verify service exists - use original service ID (might be UUID)
       const { data: existingService, error: serviceError } = await supabase
         .from("services")
         .select("id, name")
-        .eq("id", serviceIdNum)
+        .eq("id", serviceId)
         .single();
 
       if (serviceError || !existingService) {
+        console.error('[Service lookup error]:', serviceError);
         throw new Error("Service not found");
       }
 
-      // Create booking with proper UUID handling
+      // Create booking with proper integer handling
       const bookingPayload = {
         created_by: user.id,
-        service_id: serviceIdNum,
+        service_id: serviceIdForBooking, // Use integer ID
         tentative_date: format(data.fromDate, "yyyy-MM-dd"),
         status: "pending",
         location: data.location,
