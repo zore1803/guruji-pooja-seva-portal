@@ -23,7 +23,7 @@ const services = [
     title: "Vaastu Shanti",
     category: "REGULAR",
     img: serviceImages[0],
-    price: "₹00.00",
+    price: "₹1000.00",
     link: "/product/1",
   },
   {
@@ -31,7 +31,7 @@ const services = [
     title: "Griha Pravesh",
     category: "REGULAR",
     img: serviceImages[1],
-    price: "₹00.00",
+    price: "₹1200.00",
     link: "/product/2",
   },
   {
@@ -39,7 +39,7 @@ const services = [
     title: "Bhoomi Pooja",
     category: "REGULAR",
     img: serviceImages[2],
-    price: "₹00.00",
+    price: "₹1100.00",
     link: "/product/3",
   },
   {
@@ -47,7 +47,7 @@ const services = [
     title: "Satya Narayan",
     category: "REGULAR",
     img: serviceImages[3],
-    price: "₹00.00",
+    price: "₹900.00",
     link: "/product/4",
   },
   {
@@ -55,7 +55,7 @@ const services = [
     title: "Durja Pooja",
     category: "REGULAR",
     img: serviceImages[4],
-    price: "₹00.00",
+    price: "₹1000.00",
     link: "/product/5",
   },
   {
@@ -63,7 +63,7 @@ const services = [
     title: "Office Opening Pooja",
     category: "REGULAR",
     img: serviceImages[5],
-    price: "₹00.00",
+    price: "₹2000.00",
     link: "/product/6",
   },
   {
@@ -71,7 +71,7 @@ const services = [
     title: "Mahalakshmi Pooja",
     category: "REGULAR",
     img: serviceImages[6],
-    price: "₹00.00",
+    price: "₹1400.00",
     link: "/product/7",
   },
   {
@@ -79,7 +79,7 @@ const services = [
     title: "Ganpati Pooja",
     category: "REGULAR",
     img: serviceImages[7],
-    price: "₹00.00",
+    price: "₹1200.00",
     link: "/product/8",
   },
   {
@@ -87,7 +87,7 @@ const services = [
     title: "Rudra Abhishek",
     category: "REGULAR",
     img: serviceImages[8],
-    price: "₹00.00",
+    price: "₹1800.00",
     link: "/product/9",
   },
   {
@@ -95,7 +95,7 @@ const services = [
     title: "Mangalagaur Pooja",
     category: "REGULAR",
     img: serviceImages[9],
-    price: "₹00.00",
+    price: "₹1300.00",
     link: "/product/10",
   },
   {
@@ -103,7 +103,7 @@ const services = [
     title: "Ganpati Visarjan Pooja",
     category: "FESTIVAL",
     img: "/lovable-uploads/8f56705a-3508-48d2-b025-b9746aa30f85.png", // Ganpati Visarjan
-    price: "₹00.00",
+    price: "₹900.00",
     link: "/product/11",
   },
   {
@@ -111,7 +111,7 @@ const services = [
     title: "Janmashtami Pooja",
     category: "FESTIVAL",
     img: "/lovable-uploads/6953ad6b-9da3-45bc-bc02-63febada4a34.png", // Janmashtami
-    price: "₹00.00",
+    price: "₹1100.00",
     link: "/product/12",
   },
   {
@@ -119,7 +119,7 @@ const services = [
     title: "Diwali Lakshmi Pooja",
     category: "FESTIVAL",
     img: "/lovable-uploads/7a18e668-8e8d-4d40-a8a8-a286e4089324.png", // Diwali Lakshmi
-    price: "₹00.00",
+    price: "₹2100.00",
     link: "/product/13",
   },
   {
@@ -127,7 +127,7 @@ const services = [
     title: "Ganapti Sthapana Pooja",
     category: "FESTIVAL",
     img: "/lovable-uploads/3a7d649e-67b9-4c49-9866-d9cb4f95f0aa.png", // Ganpati Sthapana
-    price: "₹00.00",
+    price: "₹1000.00",
     link: "/product/14",
   },
   {
@@ -135,7 +135,7 @@ const services = [
     title: "Udak Shanti",
     category: "SHANTI",
     img: "/lovable-uploads/251e248a-4351-49bd-8651-6aeefdaee648.png", // Udak Shanti
-    price: "₹00.00",
+    price: "₹950.00",
     link: "/product/15",
   },
   {
@@ -143,7 +143,7 @@ const services = [
     title: "Navgraha Shanti",
     category: "SHANTI",
     img: "/lovable-uploads/25013b1e-6e13-409f-803d-fbdd499fd7da.png", // Navgraha Shanti
-    price: "₹00.00",
+    price: "₹1700.00",
     link: "/product/16",
   },
   {
@@ -151,7 +151,7 @@ const services = [
     title: "Ganapti Havan",
     category: "HAVAN",
     img: "/lovable-uploads/07f5ed97-9548-4467-b6f8-68cf9301ec72.png", // Ganapti Havan
-    price: "₹00.00",
+    price: "₹1500.00",
     link: "/product/17",
   },
   {
@@ -159,7 +159,7 @@ const services = [
     title: "Dhan Laxmi Pooja",
     category: "HAVAN",
     img: "/lovable-uploads/b9ec4e6a-73d1-4536-8eaa-809140586224.png", // Dhan Laxmi
-    price: "₹00.00",
+    price: "₹2000.00",
     link: "/product/18",
   },
   {
@@ -167,7 +167,7 @@ const services = [
     title: "Ganesh Havan",
     category: "HAVAN",
     img: "/lovable-uploads/9ec09147-1249-4be2-9391-19df10c3d32f.png", // Ganesh Havan
-    price: "₹00.00",
+    price: "₹1600.00",
     link: "/product/19",
   },
   {
@@ -175,7 +175,7 @@ const services = [
     title: "Satyanarayan Havan",
     category: "HAVAN",
     img: "/lovable-uploads/1a779d2d-ca9c-4348-a5b7-1745de1e05fa.png", // Satyanarayan
-    price: "₹00.00",
+    price: "₹1200.00",
     link: "/product/20",
   },
 ];
