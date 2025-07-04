@@ -1,4 +1,3 @@
-
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -38,22 +37,37 @@ type LocalStorageBooking = {
 };
 
 export default function DashboardCustomer() {
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
+  // Handle authentication state changes
   useEffect(() => {
+    // Don't do anything while session is still loading
+    if (sessionLoading) return;
+    
+    // If no user after session loading is complete, redirect to auth
     if (!user) {
-      navigate("/auth?role=customer");
+      navigate("/auth?role=customer", { replace: true });
       return;
     }
 
+    // User is authenticated, proceed with loading profile and data
+    setInitialLoad(false);
+  }, [user, sessionLoading, navigate]);
+
+  // Load profile when user is confirmed
+  useEffect(() => {
+    if (sessionLoading || !user || initialLoad) return;
+
     const loadProfile = async () => {
       try {
+        setLoading(true);
         const { data, error } = await supabase
           .from("profiles")
           .select("*")
@@ -88,10 +102,11 @@ export default function DashboardCustomer() {
     };
 
     loadProfile();
-  }, [user, navigate]);
+  }, [user, sessionLoading, initialLoad]);
 
+  // Load bookings when user and profile are ready
   useEffect(() => {
-    if (!user) return;
+    if (sessionLoading || !user || initialLoad) return;
     
     const loadBookings = async () => {
       try {
@@ -121,8 +136,6 @@ export default function DashboardCustomer() {
       }
     };
 
-    loadBookings();
-
     // Load localStorage bookings for this user
     const loadLocalBookings = () => {
       try {
@@ -139,19 +152,27 @@ export default function DashboardCustomer() {
       }
     };
 
+    loadBookings();
     loadLocalBookings();
-  }, [user]);
+  }, [user, sessionLoading, initialLoad]);
 
   const handleProfileUpdated = (updated: any) => {
     setProfile(updated);
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      await supabase.auth.signOut();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigation even if logout fails
+      navigate("/", { replace: true });
+    }
   };
 
-  if (loading) {
+  // Show loading while session is loading or during initial load
+  if (sessionLoading || initialLoad || loading) {
     return (
       <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
         <div className="text-center">
@@ -162,6 +183,7 @@ export default function DashboardCustomer() {
     );
   }
 
+  // Don't render anything if user is not authenticated
   if (!user) {
     return null;
   }
