@@ -1,4 +1,3 @@
-
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -13,22 +12,37 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, TableCap
 import { format } from "date-fns";
 
 export default function DashboardPandit() {
-  const { user } = useSession();
+  const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [initialLoad, setInitialLoad] = useState(true);
 
+  // Handle authentication state changes
   useEffect(() => {
+    // Don't do anything while session is still loading
+    if (sessionLoading) return;
+    
+    // If no user after session loading is complete, redirect to auth
     if (!user) {
-      navigate("/auth?role=pandit");
+      navigate("/auth?role=pandit", { replace: true });
       return;
     }
 
+    // User is authenticated, proceed with loading profile and data
+    setInitialLoad(false);
+  }, [user, sessionLoading, navigate]);
+
+  // Load profile when user is confirmed
+  useEffect(() => {
+    if (sessionLoading || !user || initialLoad) return;
+
     const loadProfile = async () => {
       try {
-        const { data } = await supabase
+        setLoading(true);
+        const { data, error } = await supabase
           .from("profiles")
           .select("*")
           .eq("id", user.id)
@@ -36,6 +50,9 @@ export default function DashboardPandit() {
 
         if (data) {
           setProfile(data);
+        } else {
+          console.error('Profile not found:', error);
+          // Optionally redirect to profile creation or show error
         }
       } catch (error) {
         console.error('Profile load error:', error);
@@ -45,13 +62,69 @@ export default function DashboardPandit() {
     };
 
     loadProfile();
-  }, [user, navigate]);
+  }, [user, sessionLoading, initialLoad]);
 
+  // Load bookings when user is confirmed
   useEffect(() => {
-    if (!user) return;
+    if (sessionLoading || !user || initialLoad) return;
     
     const fetchAssignedBookings = async () => {
-      const { data, error } = await supabase
+      try {
+        const { data, error } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            profiles:created_by (*),
+            services:service_id (*)
+          `)
+          .eq("pandit_id", user.id)
+          .in("status", ["assigned", "confirmed", "completed"])
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error('Error fetching bookings:', error);
+          return;
+        }
+
+        if (data) {
+          const mapped = data.map((row: any) => ({
+            ...row,
+            customer_profile: row.profiles,
+            service: row.services,
+          }));
+          setAssignedBookings(mapped);
+        }
+      } catch (error) {
+        console.error('Booking load error:', error);
+      }
+    };
+
+    fetchAssignedBookings();
+  }, [user, sessionLoading, initialLoad]);
+
+  const handleAcceptBooking = async (bookingId: string) => {
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ status: "confirmed" })
+        .eq("id", bookingId);
+
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to accept booking",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Booking accepted successfully",
+      });
+
+      // Refresh bookings instead of full page reload
+      const { data } = await supabase
         .from("bookings")
         .select(`
           *,
@@ -70,59 +143,69 @@ export default function DashboardPandit() {
         }));
         setAssignedBookings(mapped);
       }
-    };
-
-    fetchAssignedBookings();
-  }, [user]);
-
-  const handleAcceptBooking = async (bookingId: string) => {
-    const { error } = await supabase
-      .from("bookings")
-      .update({ status: "confirmed" })
-      .eq("id", bookingId);
-
-    if (error) {
+    } catch (error) {
+      console.error('Error accepting booking:', error);
       toast({
         title: "Error",
         description: "Failed to accept booking",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Booking accepted successfully",
-    });
-
-    window.location.reload();
   };
 
   const handleRejectBooking = async (bookingId: string) => {
-    const { error } = await supabase
-      .from("bookings")
-      .update({ 
-        status: "cancelled",
-        pandit_id: null,
-        assigned_at: null
-      })
-      .eq("id", bookingId);
+    try {
+      const { error } = await supabase
+        .from("bookings")
+        .update({ 
+          status: "cancelled",
+          pandit_id: null,
+          assigned_at: null
+        })
+        .eq("id", bookingId);
 
-    if (error) {
+      if (error) {
+        toast({
+          title: "Error",
+          description: "Failed to reject booking",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      toast({
+        title: "Success",
+        description: "Booking rejected successfully",
+      });
+
+      // Refresh bookings instead of full page reload
+      const { data } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          profiles:created_by (*),
+          services:service_id (*)
+        `)
+        .eq("pandit_id", user.id)
+        .in("status", ["assigned", "confirmed", "completed"])
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        const mapped = data.map((row: any) => ({
+          ...row,
+          customer_profile: row.profiles,
+          service: row.services,
+        }));
+        setAssignedBookings(mapped);
+      }
+    } catch (error) {
+      console.error('Error rejecting booking:', error);
       toast({
         title: "Error",
         description: "Failed to reject booking",
         variant: "destructive",
       });
-      return;
     }
-
-    toast({
-      title: "Success",
-      description: "Booking rejected successfully",
-    });
-
-    window.location.reload();
   };
 
   const handleProfileUpdated = (updated: any) => {
@@ -130,11 +213,18 @@ export default function DashboardPandit() {
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
-    navigate("/");
+    try {
+      await supabase.auth.signOut();
+      navigate("/", { replace: true });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Force navigation even if logout fails
+      navigate("/", { replace: true });
+    }
   };
 
-  if (loading) {
+  // Show loading while session is loading or during initial load
+  if (sessionLoading || initialLoad || loading) {
     return (
       <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center">
         <div className="text-center">
@@ -145,10 +235,19 @@ export default function DashboardPandit() {
     );
   }
 
-  if (!user || !profile) {
+  // Don't render anything if user is not authenticated
+  if (!user) {
+    return null;
+  }
+
+  // Show profile loading state if profile is not yet loaded
+  if (!profile) {
     return (
       <div className="flex items-center justify-center py-10 text-gray-500">
-        Loading profile...
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-orange-600 mx-auto mb-2"></div>
+          <p>Loading profile...</p>
+        </div>
       </div>
     );
   }
@@ -158,7 +257,7 @@ export default function DashboardPandit() {
       <div className="w-[190px] flex flex-col items-center">
         <Avatar className="w-24 h-24 mb-2">
           <AvatarImage src={profile.profile_image_url} alt={profile.name} />
-          <AvatarFallback>{profile.name.charAt(0).toUpperCase()}</AvatarFallback>
+          <AvatarFallback>{profile.name?.charAt(0)?.toUpperCase() || 'P'}</AvatarFallback>
         </Avatar>
         <span className="font-semibold">{profile.name}</span>
         <span className="text-xs text-gray-500">Pandit</span>
@@ -178,7 +277,9 @@ export default function DashboardPandit() {
         <div className="mt-6">
           <h2 className="text-lg font-semibold mb-4">Assigned Bookings</h2>
           {assignedBookings.length === 0 ? (
-            <div className="text-center text-gray-500">No assigned bookings found</div>
+            <div className="text-center text-gray-500 py-8">
+              <p>No assigned bookings found</p>
+            </div>
           ) : (
             <Table>
               <TableCaption>Your assigned bookings</TableCaption>
@@ -198,8 +299,8 @@ export default function DashboardPandit() {
                   <TableRow key={booking.id}>
                     <TableCell>
                       <div>
-                        <div className="font-medium">{booking.customer_profile?.name}</div>
-                        <div className="text-sm text-gray-500">{booking.customer_profile?.email}</div>
+                        <div className="font-medium">{booking.customer_profile?.name || 'Unknown'}</div>
+                        <div className="text-sm text-gray-500">{booking.customer_profile?.email || 'No email'}</div>
                       </div>
                     </TableCell>
                     <TableCell>{booking.service?.name || "Unknown Service"}</TableCell>
