@@ -152,7 +152,7 @@ export default function AuthPage() {
       const filePath = `profiles/${fileName}`;
 
       const { error: uploadError } = await supabase.storage
-        .from('profile-images')
+        .from('avatars')
         .upload(filePath, profileImage, {
           cacheControl: '3600',
           upsert: false
@@ -165,7 +165,7 @@ export default function AuthPage() {
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-images')
+        .from('avatars')
         .getPublicUrl(filePath);
 
       return publicUrl;

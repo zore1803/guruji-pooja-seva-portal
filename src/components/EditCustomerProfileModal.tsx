@@ -85,13 +85,13 @@ export default function EditCustomerProfileModal({
         const oldPath = profile.profile_image_url.split('/').pop();
         if (oldPath) {
           await supabase.storage
-            .from('profile-images')
+            .from('avatars')
             .remove([`profiles/${oldPath}`]);
         }
       }
 
       const { error: uploadError } = await supabase.storage
-        .from('profile-images')
+        .from('avatars')
         .upload(filePath, profileImage, {
           cacheControl: '3600',
           upsert: false
@@ -104,7 +104,7 @@ export default function EditCustomerProfileModal({
 
       // Get public URL
       const { data: { publicUrl } } = supabase.storage
-        .from('profile-images')
+        .from('avatars')
         .getPublicUrl(filePath);
 
       return publicUrl;
@@ -167,7 +167,7 @@ export default function EditCustomerProfileModal({
       const imagePath = profile.profile_image_url.split('/').pop();
       if (imagePath) {
         await supabase.storage
-          .from('profile-images')
+          .from('avatars')
           .remove([`profiles/${imagePath}`]);
       }
 

@@ -18,6 +18,7 @@ const Index = () => (
           <Link to="/services" className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded font-semibold text-lg shadow">Book Your Pooja</Link>
           <Link to="/auth?role=customer" className="bg-white text-orange-700 border border-orange-700 px-6 py-3 rounded font-semibold text-lg shadow hover:bg-orange-50">Login as Customer</Link>
           <Link to="/auth?role=pandit" className="bg-white text-orange-700 border border-orange-700 px-6 py-3 rounded font-semibold text-lg shadow hover:bg-orange-50">Login as Pandit</Link>
+          <Link to="/auth?role=admin" className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-semibold text-lg shadow">Admin Login</Link>
         </div>
       </div>
       {/* Right: Logo image */}
