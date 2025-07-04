@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,11 +5,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import OTPVerification from "@/components/OTPVerification";
+import { Camera, Upload, X } from "lucide-react";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -28,6 +29,11 @@ export default function AuthPage() {
     address: "",
     aadhar_number: "",
   });
+
+  // Photo upload states
+  const [profileImage, setProfileImage] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [uploading, setUploading] = useState(false);
 
   const role = searchParams.get("role") || "customer";
 
@@ -93,7 +99,83 @@ export default function AuthPage() {
     });
     setShowOTPVerification(false);
     setPendingEmail("");
+    setProfileImage(null);
+    setPreviewUrl(null);
   }, [role]);
+
+  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        toast({
+          title: "Error",
+          description: "Please select an image file",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Validate file size (5MB limit)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          title: "Error",
+          description: "Image size should be less than 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setProfileImage(file);
+      
+      // Create preview URL
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setPreviewUrl(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const removeImage = () => {
+    setProfileImage(null);
+    setPreviewUrl(null);
+  };
+
+  const uploadProfileImage = async (userId: string): Promise<string | null> => {
+    if (!profileImage) return null;
+
+    setUploading(true);
+    try {
+      const fileExt = profileImage.name.split('.').pop();
+      const fileName = `${userId}-${Date.now()}.${fileExt}`;
+      const filePath = `profiles/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('profile-images')
+        .upload(filePath, profileImage, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Upload error:', uploadError);
+        return null;
+      }
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('profile-images')
+        .getPublicUrl(filePath);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      return null;
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -118,7 +200,7 @@ export default function AuthPage() {
       },
     };
 
-    const { error } = await supabase.auth.signUp(signUpData);
+    const { data: authData, error } = await supabase.auth.signUp(signUpData);
 
     if (error) {
       toast({
@@ -126,14 +208,33 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
-    } else {
-      setPendingEmail(formData.email);
-      setShowOTPVerification(true);
-      toast({
-        title: "Verification Required",
-        description: "Please check your email for the verification code",
-      });
+      setLoading(false);
+      return;
     }
+
+    // If user is created and we have a profile image, upload it
+    if (authData.user && profileImage) {
+      const profileImageUrl = await uploadProfileImage(authData.user.id);
+      
+      if (profileImageUrl) {
+        // Update the user's profile with the image URL
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .update({ profile_image_url: profileImageUrl })
+          .eq('id', authData.user.id);
+
+        if (profileError) {
+          console.error('Profile image update error:', profileError);
+        }
+      }
+    }
+
+    setPendingEmail(formData.email);
+    setShowOTPVerification(true);
+    toast({
+      title: "Verification Required",
+      description: "Please check your email for the verification code",
+    });
     
     setLoading(false);
   };
@@ -283,6 +384,50 @@ export default function AuthPage() {
               </TabsContent>
               <TabsContent value="signup">
                 <form onSubmit={handleSignUp} className="space-y-4">
+                  {/* Profile Photo Upload - Only for customers and pandits */}
+                  {role !== "admin" && (
+                    <div className="space-y-2">
+                      <Label>Profile Photo (Optional)</Label>
+                      <div className="flex flex-col items-center space-y-3">
+                        <Avatar className="w-16 h-16">
+                          <AvatarImage src={previewUrl || undefined} />
+                          <AvatarFallback className="text-lg">
+                            {formData.name.charAt(0).toUpperCase() || <Camera className="w-6 h-6" />}
+                          </AvatarFallback>
+                        </Avatar>
+                        
+                        <div className="flex gap-2">
+                          <Label htmlFor="profile-image" className="cursor-pointer">
+                            <Button type="button" variant="outline" size="sm" className="flex items-center gap-2">
+                              <Upload className="w-4 h-4" />
+                              {previewUrl ? 'Change' : 'Upload'}
+                            </Button>
+                            <Input
+                              id="profile-image"
+                              type="file"
+                              accept="image/*"
+                              onChange={handleImageSelect}
+                              className="hidden"
+                            />
+                          </Label>
+                          
+                          {previewUrl && (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              onClick={removeImage}
+                              className="flex items-center gap-2"
+                            >
+                              <X className="w-4 h-4" />
+                              Remove
+                            </Button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
@@ -353,8 +498,12 @@ export default function AuthPage() {
                     </>
                   )}
                   
-                  <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={loading}>
-                    {loading ? "Creating account..." : "Sign Up"}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-orange-600 hover:bg-orange-700" 
+                    disabled={loading || uploading}
+                  >
+                    {loading ? "Creating account..." : uploading ? "Uploading photo..." : "Sign Up"}
                   </Button>
                 </form>
               </TabsContent>
