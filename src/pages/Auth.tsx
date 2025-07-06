@@ -305,16 +305,28 @@ export default function AuthPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8ede8] flex items-center justify-center p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1">
-          <CardTitle className="text-2xl font-bold text-center text-orange-700">
-            {role === "admin" ? "Admin Login" : role === "pandit" ? "Pandit Portal" : "Customer Portal"}
+    <div className="min-h-screen bg-gradient-to-br from-orange-50 via-amber-50 to-yellow-50 flex items-center justify-center p-4 relative overflow-hidden">
+      {/* Animated background elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 rounded-full bg-orange-200/30 animate-pulse"></div>
+        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-amber-200/20 animate-pulse delay-1000"></div>
+        <div className="absolute top-1/2 left-1/4 w-32 h-32 rounded-full bg-yellow-200/25 animate-pulse delay-500"></div>
+      </div>
+      
+      <Card className="w-full max-w-md relative z-10 backdrop-blur-sm bg-white/95 shadow-2xl border-0 animate-fade-in hover:shadow-3xl transition-all duration-300">
+        <CardHeader className="space-y-4 text-center">
+          <div className="mx-auto w-16 h-16 bg-gradient-to-br from-orange-500 to-amber-600 rounded-full flex items-center justify-center mb-2 animate-scale-in">
+            <span className="text-2xl font-bold text-white">
+              {role === "admin" ? "A" : role === "pandit" ? "P" : "C"}
+            </span>
+          </div>
+          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-orange-600 to-amber-600 bg-clip-text text-transparent">
+            {role === "admin" ? "Admin Portal" : role === "pandit" ? "Pandit Portal" : "Customer Portal"}
           </CardTitle>
-          <CardDescription className="text-center">
+          <CardDescription className="text-gray-600 text-lg">
             {role === "admin" 
-              ? "Administrator access to E-GURUJI system"
-              : `Enter your credentials to access the ${role} portal`
+              ? "🔐 Administrator access to E-GURUJI system"
+              : `🙏 Welcome to your ${role} portal`
             }
           </CardDescription>
         </CardHeader>
@@ -344,16 +356,37 @@ export default function AuthPage() {
                   placeholder="Enter admin password"
                 />
               </div>
-              <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={adminLoading}>
-                {adminLoading ? "Signing in..." : "Sign In as Admin"}
+              <Button 
+                type="submit" 
+                className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
+                disabled={adminLoading}
+              >
+                {adminLoading ? (
+                  <div className="flex items-center gap-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    Signing in...
+                  </div>
+                ) : (
+                  "🔐 Admin Access"
+                )}
               </Button>
             </form>
           ) : (
             // Regular user login/signup
             <Tabs defaultValue="signin" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signin">Sign In</TabsTrigger>
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-orange-100/50 p-1 rounded-lg">
+                <TabsTrigger 
+                  value="signin" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-200 rounded-md"
+                >
+                  🔑 Sign In
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="signup" 
+                  className="data-[state=active]:bg-white data-[state=active]:shadow-md transition-all duration-200 rounded-md"
+                >
+                  ✨ Sign Up
+                </TabsTrigger>
               </TabsList>
               <TabsContent value="signin">
                 <form onSubmit={handleSignIn} className="space-y-4">
@@ -377,8 +410,19 @@ export default function AuthPage() {
                       required
                     />
                   </div>
-                  <Button type="submit" className="w-full bg-orange-600 hover:bg-orange-700" disabled={loading}>
-                    {loading ? "Signing in..." : "Sign In"}
+                  <Button 
+                    type="submit" 
+                    className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
+                    disabled={loading}
+                  >
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Signing in...
+                      </div>
+                    ) : (
+                      "✨ Sign In"
+                    )}
                   </Button>
                 </form>
               </TabsContent>
@@ -456,10 +500,22 @@ export default function AuthPage() {
                   
                   <Button 
                     type="submit" 
-                    className="w-full bg-orange-600 hover:bg-orange-700" 
+                    className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
                     disabled={loading || uploading}
                   >
-                    {loading ? "Creating account..." : uploading ? "Uploading photo..." : "Sign Up"}
+                    {loading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Creating account...
+                      </div>
+                    ) : uploading ? (
+                      <div className="flex items-center gap-2">
+                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                        Uploading photo...
+                      </div>
+                    ) : (
+                      "🚀 Create Account"
+                    )}
                   </Button>
                 </form>
               </TabsContent>

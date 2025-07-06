@@ -17,6 +17,7 @@ export default function DashboardPandit() {
   const [profile, setProfile] = useState<any>(null);
   const [openEditModal, setOpenEditModal] = useState(false);
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
+  const [localBookings, setLocalBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialLoad, setInitialLoad] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>("all");
@@ -65,6 +66,22 @@ export default function DashboardPandit() {
   useEffect(() => {
     if (sessionLoading || !user || initialLoad) return;
     
+    const loadLocalBookings = () => {
+      try {
+        const stored = localStorage.getItem('recentBookings');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          // Show all pending bookings for pandit to accept/reject
+          const pendingBookings = parsed.filter((booking: any) => 
+            booking.status === "pending"
+          );
+          setLocalBookings(pendingBookings);
+        }
+      } catch (error) {
+        console.error('Error loading local bookings:', error);
+      }
+    };
+
     const fetchAssignedBookings = async () => {
       try {
         const { data, error } = await supabase
@@ -96,50 +113,35 @@ export default function DashboardPandit() {
       }
     };
 
+    loadLocalBookings();
     fetchAssignedBookings();
+    
+    // Set up interval to check for new local bookings
+    const interval = setInterval(loadLocalBookings, 5000);
+    return () => clearInterval(interval);
   }, [user, sessionLoading, initialLoad]);
 
   const handleAcceptBooking = async (bookingId: string) => {
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ status: "confirmed" })
-        .eq("id", bookingId);
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to accept booking",
-          variant: "destructive",
-        });
-        return;
+      // Update booking status in localStorage
+      const stored = localStorage.getItem('recentBookings');
+      if (stored) {
+        const bookings = JSON.parse(stored);
+        const updatedBookings = bookings.map((booking: any) =>
+          booking.id === bookingId
+            ? { ...booking, status: "confirmed", pandit_id: user.id, pandit_name: profile.name }
+            : booking
+        );
+        localStorage.setItem('recentBookings', JSON.stringify(updatedBookings));
+        
+        // Remove from local bookings (pending list)
+        setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
       }
 
       toast({
         title: "Success",
         description: "Booking accepted successfully",
       });
-
-      // Refresh bookings
-      const { data } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          profiles:created_by (*),
-          services:service_id (*)
-        `)
-        .eq("pandit_id", user.id)
-        .in("status", ["assigned", "confirmed", "completed"])
-        .order("created_at", { ascending: false });
-
-      if (data) {
-        const mapped = data.map((row: any) => ({
-          ...row,
-          customer_profile: row.profiles,
-          service: row.services,
-        }));
-        setAssignedBookings(mapped);
-      }
     } catch (error) {
       console.error('Error accepting booking:', error);
       toast({
@@ -152,49 +154,25 @@ export default function DashboardPandit() {
 
   const handleRejectBooking = async (bookingId: string) => {
     try {
-      const { error } = await supabase
-        .from("bookings")
-        .update({ 
-          status: "cancelled",
-          pandit_id: null,
-          assigned_at: null
-        })
-        .eq("id", bookingId);
-
-      if (error) {
-        toast({
-          title: "Error",
-          description: "Failed to reject booking",
-          variant: "destructive",
-        });
-        return;
+      // Update booking status in localStorage
+      const stored = localStorage.getItem('recentBookings');
+      if (stored) {
+        const bookings = JSON.parse(stored);
+        const updatedBookings = bookings.map((booking: any) =>
+          booking.id === bookingId
+            ? { ...booking, status: "rejected", rejected_by: profile.name }
+            : booking
+        );
+        localStorage.setItem('recentBookings', JSON.stringify(updatedBookings));
+        
+        // Remove from local bookings (pending list)
+        setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
       }
 
       toast({
         title: "Success",
         description: "Booking rejected successfully",
       });
-
-      // Refresh bookings
-      const { data } = await supabase
-        .from("bookings")
-        .select(`
-          *,
-          profiles:created_by (*),
-          services:service_id (*)
-        `)
-        .eq("pandit_id", user.id)
-        .in("status", ["assigned", "confirmed", "completed"])
-        .order("created_at", { ascending: false });
-
-      if (data) {
-        const mapped = data.map((row: any) => ({
-          ...row,
-          customer_profile: row.profiles,
-          service: row.services,
-        }));
-        setAssignedBookings(mapped);
-      }
     } catch (error) {
       console.error('Error rejecting booking:', error);
       toast({
@@ -242,15 +220,19 @@ export default function DashboardPandit() {
   }
 
   const stats = {
-    totalBookings: assignedBookings.length,
-    pendingBookings: assignedBookings.filter(b => b.status === "assigned").length,
+    totalBookings: localBookings.length + assignedBookings.length,
+    pendingBookings: localBookings.length,
     confirmedBookings: assignedBookings.filter(b => b.status === "confirmed").length,
     completedBookings: assignedBookings.filter(b => b.status === "completed").length,
   };
 
+  // Show local bookings for pending requests and database bookings for accepted ones
+  const allBookings = [...localBookings, ...assignedBookings];
   const filteredBookings = activeFilter === "all" 
-    ? assignedBookings 
-    : assignedBookings.filter(booking => booking.status === activeFilter);
+    ? allBookings 
+    : activeFilter === "pending" 
+      ? localBookings
+      : assignedBookings.filter(booking => booking.status === activeFilter);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
@@ -320,25 +302,28 @@ export default function DashboardPandit() {
               onFilterChange={setActiveFilter}
             />
 
-            <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
-              <div className="px-6 py-4 border-b bg-gray-50">
-                <h2 className="text-xl font-semibold text-gray-800">
-                  {activeFilter === "all" ? "All Assignments" : `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Assignments`}
-                </h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  Manage your assigned bookings and customer requests
-                </p>
+              <div className="bg-white rounded-xl shadow-md overflow-hidden mb-8">
+                <div className="px-6 py-4 border-b bg-gray-50">
+                  <h2 className="text-xl font-semibold text-gray-800">
+                    {activeFilter === "pending" ? "New Booking Requests" : 
+                     activeFilter === "all" ? "All Bookings" : 
+                     `${activeFilter.charAt(0).toUpperCase() + activeFilter.slice(1)} Bookings`}
+                  </h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {activeFilter === "pending" ? "Accept or reject new customer requests" : 
+                     "Manage your bookings and customer requests"}
+                  </p>
+                </div>
+                
+                <BookingsTable
+                  bookings={filteredBookings}
+                  loading={false}
+                  role="pandit"
+                  onAcceptBooking={handleAcceptBooking}
+                  onRejectBooking={handleRejectBooking}
+                  showActions={activeFilter === "pending" || activeFilter === "all"}
+                />
               </div>
-              
-              <BookingsTable
-                bookings={filteredBookings}
-                loading={false}
-                role="pandit"
-                onAcceptBooking={handleAcceptBooking}
-                onRejectBooking={handleRejectBooking}
-                showActions={true}
-              />
-            </div>
 
             <div className="bg-white rounded-xl shadow-md overflow-hidden">
               <div className="px-6 py-4 border-b bg-gray-50">

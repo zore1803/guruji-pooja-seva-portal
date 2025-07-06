@@ -77,32 +77,14 @@ export default function CredentialsPage() {
         throw new Error("Service not found");
       }
 
-      // Create booking with proper integer handling
-      const bookingPayload = {
-        created_by: user.id,
-        service_id: serviceIdAsNumber, // Use integer ID
-        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
-        status: "pending",
-        location: data.location,
-        address: data.address,
-      };
+      // Generate unique booking ID for localStorage
+      const bookingId = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 
-      console.log('[Booking DEBUG] Final insert payload:', bookingPayload);
-
-      const { data: bookingResult, error: insertError } = await supabase
-        .from("bookings")
-        .insert([bookingPayload])
-        .select('*')
-        .single();
-
-      if (insertError) {
-        console.error('[BOOKING INSERT ERROR]:', insertError);
-        throw insertError;
-      }
+      console.log('[Booking DEBUG] Saving to localStorage only');
 
       // Store booking in localStorage for cross-dashboard display
       const bookingDetails = {
-        id: bookingResult.id,
+        id: bookingId,
         service_name: existingService.name,
         service_id: serviceIdAsNumber,
         customer_name: profile?.name || user.email,
