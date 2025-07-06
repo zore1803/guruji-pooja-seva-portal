@@ -383,52 +383,8 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
               <TabsContent value="signup">
-                <form onSubmit={handleSignUp} className="space-y-4">
-                  {/* Profile Photo Upload - Only for customers and pandits */}
-                  {role !== "admin" && (
-                    <div className="space-y-2">
-                      <Label>Profile Photo (Optional)</Label>
-                      <div className="flex flex-col items-center space-y-3">
-                        <Avatar className="w-16 h-16">
-                          <AvatarImage src={previewUrl || undefined} />
-                          <AvatarFallback className="text-lg">
-                            {formData.name.charAt(0).toUpperCase() || <Camera className="w-6 h-6" />}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div className="flex gap-2">
-                          <Label htmlFor="profile-image" className="cursor-pointer">
-                            <Button type="button" variant="outline" size="sm" className="flex items-center gap-2">
-                              <Upload className="w-4 h-4" />
-                              {previewUrl ? 'Change' : 'Upload'}
-                            </Button>
-                            <Input
-                              id="profile-image"
-                              type="file"
-                              accept="image/*"
-                              onChange={handleImageSelect}
-                              className="hidden"
-                            />
-                          </Label>
-                          
-                          {previewUrl && (
-                            <Button
-                              type="button"
-                              variant="outline"
-                              size="sm"
-                              onClick={removeImage}
-                              className="flex items-center gap-2"
-                            >
-                              <X className="w-4 h-4" />
-                              Remove
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
+                 <form onSubmit={handleSignUp} className="space-y-4">
+                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
