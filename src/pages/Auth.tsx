@@ -12,6 +12,9 @@ import { useSession } from "@/hooks/useSession";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import OTPVerification from "@/components/OTPVerification";
 import { Camera, Upload, X } from "lucide-react";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { INDIAN_STATES, STATE_CITIES } from "@/data/states";
+import { Checkbox } from "@/components/ui/checkbox";
 
 export default function AuthPage() {
   const navigate = useNavigate();
@@ -28,6 +31,8 @@ export default function AuthPage() {
     expertise: "",
     address: "",
     aadhar_number: "",
+    state: "",
+    work_locations: [] as string[],
   });
 
   // Photo upload states
@@ -96,6 +101,8 @@ export default function AuthPage() {
       expertise: "",
       address: "",
       aadhar_number: "",
+      state: "",
+      work_locations: [],
     });
     setShowOTPVerification(false);
     setPendingEmail("");
@@ -195,6 +202,8 @@ export default function AuthPage() {
             expertise: formData.expertise,
             address: formData.address,
             aadhar_number: formData.aadhar_number,
+            state: formData.state,
+            work_locations: formData.work_locations,
           }),
         },
       },
@@ -252,7 +261,7 @@ export default function AuthPage() {
 
     setLoading(true);
     
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: formData.email,
       password: formData.password,
     });
@@ -263,6 +272,28 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
+      setLoading(false);
+      return;
+    }
+
+    // Validate user role matches the selected portal
+    if (data.user) {
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("user_type")
+        .eq("id", data.user.id)
+        .single();
+
+      if (profile && profile.user_type !== role) {
+        await supabase.auth.signOut();
+        toast({
+          title: "Invalid Credentials",
+          description: `These credentials are not valid for ${role} portal`,
+          variant: "destructive",
+        });
+        setLoading(false);
+        return;
+      }
     }
     
     setLoading(false);
@@ -438,26 +469,42 @@ export default function AuthPage() {
                       required
                     />
                   </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={formData.email}
-                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input
-                      id="password"
-                      type="password"
-                      value={formData.password}
-                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                      required
-                    />
-                  </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="email">Email</Label>
+                     <Input
+                       id="email"
+                       type="email"
+                       value={formData.email}
+                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                       required
+                     />
+                   </div>
+                   <div className="space-y-2">
+                     <Label htmlFor="password">Password</Label>
+                     <Input
+                       id="password"
+                       type="password"
+                       value={formData.password}
+                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                       required
+                     />
+                   </div>
+                   
+                   <div className="space-y-2">
+                     <Label htmlFor="state">State</Label>
+                     <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+                       <SelectTrigger>
+                         <SelectValue placeholder="Select your state" />
+                       </SelectTrigger>
+                       <SelectContent>
+                         {INDIAN_STATES.map((state) => (
+                           <SelectItem key={state} value={state}>
+                             {state}
+                           </SelectItem>
+                         ))}
+                       </SelectContent>
+                     </Select>
+                   </div>
                   
                   {role === "pandit" && (
                     <>
@@ -483,18 +530,70 @@ export default function AuthPage() {
                           required
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="aadhar_number">Aadhar Number</Label>
-                        <Input
-                          id="aadhar_number"
-                          type="text"
-                          value={formData.aadhar_number}
-                          onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
-                          placeholder="12-digit Aadhar number"
-                          maxLength={12}
-                          required
-                        />
-                      </div>
+                       <div className="space-y-2">
+                         <Label htmlFor="aadhar_number">Aadhar Number</Label>
+                         <Input
+                           id="aadhar_number"
+                           type="text"
+                           value={formData.aadhar_number}
+                           onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
+                           placeholder="12-digit Aadhar number"
+                           maxLength={12}
+                           required
+                         />
+                       </div>
+                       
+                       <div className="space-y-2">
+                         <Label htmlFor="pandit_state">State</Label>
+                         <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value, work_locations: [] })}>
+                           <SelectTrigger>
+                             <SelectValue placeholder="Select your state" />
+                           </SelectTrigger>
+                           <SelectContent>
+                             {INDIAN_STATES.map((state) => (
+                               <SelectItem key={state} value={state}>
+                                 {state}
+                               </SelectItem>
+                             ))}
+                           </SelectContent>
+                         </Select>
+                       </div>
+                       
+                       {formData.state && (
+                         <div className="space-y-2">
+                           <Label>Available Work Locations (Select 3-4 cities)</Label>
+                           <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded p-2">
+                             {STATE_CITIES[formData.state]?.map((city) => (
+                               <div key={city} className="flex items-center space-x-2">
+                                 <Checkbox
+                                   id={city}
+                                   checked={formData.work_locations.includes(city)}
+                                   onCheckedChange={(checked) => {
+                                     if (checked) {
+                                       if (formData.work_locations.length < 4) {
+                                         setFormData({
+                                           ...formData,
+                                           work_locations: [...formData.work_locations, city]
+                                         });
+                                       }
+                                     } else {
+                                       setFormData({
+                                         ...formData,
+                                         work_locations: formData.work_locations.filter(loc => loc !== city)
+                                       });
+                                     }
+                                   }}
+                                   disabled={!formData.work_locations.includes(city) && formData.work_locations.length >= 4}
+                                 />
+                                 <Label htmlFor={city} className="text-sm">{city}</Label>
+                               </div>
+                             ))}
+                           </div>
+                           <p className="text-xs text-gray-500">
+                             Selected: {formData.work_locations.length}/4 cities
+                           </p>
+                         </div>
+                       )}
                     </>
                   )}
                   

@@ -66,19 +66,51 @@ export default function DashboardPandit() {
   useEffect(() => {
     if (sessionLoading || !user || initialLoad) return;
     
-    const loadLocalBookings = () => {
+    const fetchPendingBookings = async () => {
       try {
-        const stored = localStorage.getItem('recentBookings');
-        if (stored) {
-          const parsed = JSON.parse(stored);
-          // Show all pending bookings for pandit to accept/reject
-          const pendingBookings = parsed.filter((booking: any) => 
-            booking.status === "pending"
-          );
-          setLocalBookings(pendingBookings);
+        // Get pandit's work locations from profile
+        const { data: panditProfile } = await supabase
+          .from("profiles")
+          .select("work_locations")
+          .eq("id", user.id)
+          .single();
+
+        const workLocations = panditProfile?.work_locations || [];
+
+        // Fetch pending bookings that match pandit's work locations
+        const { data, error } = await supabase
+          .from("bookings")
+          .select(`
+            *,
+            profiles:created_by (*),
+            services:service_id (*)
+          `)
+          .eq("status", "pending")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          console.error('Error fetching pending bookings:', error);
+          return;
+        }
+
+        if (data) {
+          // Filter bookings by location match
+          const filteredBookings = data.filter((booking: any) => {
+            if (!booking.location) return false;
+            return workLocations.some((location: string) => 
+              booking.location.toLowerCase().includes(location.toLowerCase())
+            );
+          });
+
+          const mapped = filteredBookings.map((row: any) => ({
+            ...row,
+            customer_profile: row.profiles,
+            service: row.services,
+          }));
+          setLocalBookings(mapped);
         }
       } catch (error) {
-        console.error('Error loading local bookings:', error);
+        console.error('Error loading pending bookings:', error);
       }
     };
 
@@ -96,7 +128,7 @@ export default function DashboardPandit() {
           .order("created_at", { ascending: false });
 
         if (error) {
-          console.error('Error fetching bookings:', error);
+          console.error('Error fetching assigned bookings:', error);
           return;
         }
 
@@ -109,38 +141,67 @@ export default function DashboardPandit() {
           setAssignedBookings(mapped);
         }
       } catch (error) {
-        console.error('Booking load error:', error);
+        console.error('Assigned booking load error:', error);
       }
     };
 
-    loadLocalBookings();
+    fetchPendingBookings();
     fetchAssignedBookings();
     
-    // Set up interval to check for new local bookings
-    const interval = setInterval(loadLocalBookings, 5000);
+    // Set up interval to check for new bookings
+    const interval = setInterval(fetchPendingBookings, 30000); // Check every 30 seconds
     return () => clearInterval(interval);
   }, [user, sessionLoading, initialLoad]);
 
   const handleAcceptBooking = async (bookingId: string) => {
     try {
-      // Update booking status in localStorage
-      const stored = localStorage.getItem('recentBookings');
-      if (stored) {
-        const bookings = JSON.parse(stored);
-        const updatedBookings = bookings.map((booking: any) =>
-          booking.id === bookingId
-            ? { ...booking, status: "confirmed", pandit_id: user.id, pandit_name: profile.name }
-            : booking
-        );
-        localStorage.setItem('recentBookings', JSON.stringify(updatedBookings));
-        
-        // Remove from local bookings (pending list)
-        setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
+      // Update booking in Supabase
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          status: "confirmed",
+          pandit_id: user.id,
+          assigned_at: new Date().toISOString()
+        })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error('Error accepting booking:', error);
+        toast({
+          title: "Error",
+          description: "Failed to accept booking",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Remove from pending list and refresh assigned bookings
+      setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
+      
+      // Refresh assigned bookings to show the newly accepted one
+      const { data } = await supabase
+        .from("bookings")
+        .select(`
+          *,
+          profiles:created_by (*),
+          services:service_id (*)
+        `)
+        .eq("pandit_id", user.id)
+        .in("status", ["assigned", "confirmed", "completed"])
+        .order("created_at", { ascending: false });
+
+      if (data) {
+        const mapped = data.map((row: any) => ({
+          ...row,
+          customer_profile: row.profiles,
+          service: row.services,
+        }));
+        setAssignedBookings(mapped);
       }
 
       toast({
-        title: "Success",
-        description: "Booking accepted successfully",
+        title: "🕉️ Booking Accepted",
+        description: "You have successfully accepted this sacred ceremony request",
       });
     } catch (error) {
       console.error('Error accepting booking:', error);
@@ -154,24 +215,30 @@ export default function DashboardPandit() {
 
   const handleRejectBooking = async (bookingId: string) => {
     try {
-      // Update booking status in localStorage
-      const stored = localStorage.getItem('recentBookings');
-      if (stored) {
-        const bookings = JSON.parse(stored);
-        const updatedBookings = bookings.map((booking: any) =>
-          booking.id === bookingId
-            ? { ...booking, status: "rejected", rejected_by: profile.name }
-            : booking
-        );
-        localStorage.setItem('recentBookings', JSON.stringify(updatedBookings));
-        
-        // Remove from local bookings (pending list)
-        setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
+      // Update booking status in Supabase
+      const { error } = await supabase
+        .from("bookings")
+        .update({
+          status: "rejected"
+        })
+        .eq("id", bookingId);
+
+      if (error) {
+        console.error('Error rejecting booking:', error);
+        toast({
+          title: "Error",
+          description: "Failed to reject booking",
+          variant: "destructive",
+        });
+        return;
       }
 
+      // Remove from pending list
+      setLocalBookings(prev => prev.filter(b => b.id !== bookingId));
+
       toast({
-        title: "Success",
-        description: "Booking rejected successfully",
+        title: "Booking Rejected",
+        description: "The booking request has been declined",
       });
     } catch (error) {
       console.error('Error rejecting booking:', error);

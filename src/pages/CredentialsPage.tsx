@@ -77,41 +77,36 @@ export default function CredentialsPage() {
         throw new Error("Service not found");
       }
 
-      // Generate unique booking ID for localStorage
-      const bookingId = `booking_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      // Create booking in Supabase
+      const { data: booking, error: bookingError } = await supabase
+        .from("bookings")
+        .insert({
+          service_id: serviceIdAsNumber,
+          tentative_date: format(data.fromDate, "yyyy-MM-dd"),
+          created_by: user.id,
+          address: data.address,
+          location: `${data.city}, ${data.state}`,
+          status: "pending"
+        })
+        .select()
+        .single();
 
-      console.log('[Booking DEBUG] Saving to localStorage only');
+      if (bookingError) {
+        console.error('[Booking creation error]:', bookingError);
+        throw new Error("Failed to create booking");
+      }
 
-      // Store booking in localStorage for cross-dashboard display
-      const bookingDetails = {
-        id: bookingId,
-        service_name: existingService.name,
-        service_id: serviceIdAsNumber,
-        customer_name: profile?.name || user.email,
-        customer_email: user.email,
-        tentative_date: format(data.fromDate, "yyyy-MM-dd"),
-        to_date: format(data.toDate, "yyyy-MM-dd"),
-        location: data.location,
-        address: data.address,
-        status: "pending",
-        created_at: new Date().toISOString(),
-      };
-
-      // Store in localStorage
-      const existingBookings = JSON.parse(localStorage.getItem('recentBookings') || '[]');
-      existingBookings.unshift(bookingDetails);
-      // Keep only last 10 bookings
-      localStorage.setItem('recentBookings', JSON.stringify(existingBookings.slice(0, 10)));
+      console.log('[Booking DEBUG] Saved to Supabase successfully', booking);
 
       toast({
-        title: "Booking Submitted Successfully",
+        title: "🕉️ Sacred Booking Confirmed",
         description: (
-          <div className="text-left">
+          <div className="text-left space-y-1">
             <div><b>Service:</b> {existingService.name}</div>
-            <div><b>From:</b> {format(data.fromDate, "PPP")}</div>
-            <div><b>To:</b> {format(data.toDate, "PPP")}</div>
-            <div><b>Location:</b> {data.location}</div>
+            <div><b>Date:</b> {format(data.fromDate, "PPP")}</div>
+            <div><b>Location:</b> {data.city}, {data.state}</div>
             <div><b>Address:</b> {data.address}</div>
+            <div className="text-sm text-green-600 mt-2">✨ Your request has been sent to available pandits in your area</div>
           </div>
         ),
       });
@@ -148,14 +143,9 @@ export default function CredentialsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-[#f8ede8] flex flex-col items-center justify-start py-10 px-2">
-      <div className="bg-white max-w-xl w-full rounded-xl shadow p-8">
-        <h1 className="text-2xl font-extrabold mb-6 text-orange-700 text-center">
-          Select Dates &amp; Location
-        </h1>
-        <ProfileSummary profile={profile} loading={loadingProfile} />
-        <CredentialsForm onSubmit={handleSubmit} loading={loading} serviceId={id} />
-      </div>
-    </div>
+    <>
+      <ProfileSummary profile={profile} loading={loadingProfile} />
+      <CredentialsForm onSubmit={handleSubmit} loading={loading} serviceId={id} />
+    </>
   );
 }
