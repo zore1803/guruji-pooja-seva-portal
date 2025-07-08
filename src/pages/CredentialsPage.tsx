@@ -1,3 +1,4 @@
+
 import * as React from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { format } from "date-fns";
@@ -77,7 +78,8 @@ export default function CredentialsPage() {
         throw new Error("Service not found");
       }
 
-      // Create booking in Supabase
+      // Create booking directly without using another query to fetch profile first
+      // This avoids potential recursive RLS policy issues
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
         .insert({

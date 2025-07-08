@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -19,11 +20,12 @@ import { Checkbox } from "@/components/ui/checkbox";
 export default function AuthPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { user, loading: sessionLoading } = useSession();
+  const { user, userType, loading: sessionLoading } = useSession();
   const { adminLogin, loading: adminLoading } = useAdminAuth();
   const [loading, setLoading] = useState(false);
   const [showOTPVerification, setShowOTPVerification] = useState(false);
   const [pendingEmail, setPendingEmail] = useState("");
+  const [authError, setAuthError] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -57,31 +59,25 @@ export default function AuthPage() {
 
   const redirectToDashboard = async () => {
     try {
+      // If we already have the userType from the hook, use it directly
+      if (userType) {
+        navigateBasedOnUserType(userType);
+        return;
+      }
+
       const { data: profile } = await supabase
         .from("profiles")
         .select("user_type")
         .eq("id", user.id)
         .single();
 
-      let redirectPath = "/dashboard-customer";
-
       if (profile) {
-        switch (profile.user_type) {
-          case "admin":
-            redirectPath = "/dashboard-admin";
-            break;
-          case "pandit":
-            redirectPath = "/dashboard-pandit";
-            break;
-          default:
-            redirectPath = "/dashboard-customer";
-            break;
-        }
+        navigateBasedOnUserType(profile.user_type);
       } else if (role === "pandit") {
-        redirectPath = "/dashboard-pandit";
+        navigate("/dashboard-pandit", { replace: true });
+      } else {
+        navigate("/dashboard-customer", { replace: true });
       }
-
-      navigate(redirectPath, { replace: true });
     } catch (error) {
       console.error("Error fetching user profile:", error);
       let fallbackPath = "/dashboard-customer";
@@ -90,6 +86,24 @@ export default function AuthPage() {
       }
       navigate(fallbackPath, { replace: true });
     }
+  };
+
+  const navigateBasedOnUserType = (userType: string) => {
+    let redirectPath = "/dashboard-customer";
+    
+    switch (userType) {
+      case "admin":
+        redirectPath = "/dashboard-admin";
+        break;
+      case "pandit":
+        redirectPath = "/dashboard-pandit";
+        break;
+      default:
+        redirectPath = "/dashboard-customer";
+        break;
+    }
+    
+    navigate(redirectPath, { replace: true });
   };
 
   // Clear form when role changes
@@ -108,6 +122,7 @@ export default function AuthPage() {
     setPendingEmail("");
     setProfileImage(null);
     setPreviewUrl(null);
+    setAuthError("");
   }, [role]);
 
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -189,6 +204,7 @@ export default function AuthPage() {
     if (role === "admin") return;
     
     setLoading(true);
+    setAuthError("");
     
     const signUpData = {
       email: formData.email,
@@ -217,6 +233,7 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
+      setAuthError(error.message);
       setLoading(false);
       return;
     }
@@ -250,6 +267,7 @@ export default function AuthPage() {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
+    setAuthError("");
     
     if (role === "admin") {
       const result = await adminLogin(formData.email, formData.password);
@@ -272,23 +290,42 @@ export default function AuthPage() {
         description: error.message,
         variant: "destructive",
       });
+      setAuthError(error.message);
       setLoading(false);
       return;
     }
 
     // Validate user role matches the selected portal
     if (data.user) {
-      const { data: profile } = await supabase
-        .from("profiles")
-        .select("user_type")
-        .eq("id", data.user.id)
-        .single();
+      try {
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select("user_type")
+          .eq("id", data.user.id)
+          .single();
 
-      if (profile && profile.user_type !== role) {
+        if (profileError) {
+          throw profileError;
+        }
+
+        if (profile && profile.user_type !== role) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Access Denied",
+            description: `This account is registered as a ${profile.user_type}, not a ${role}. Please use the correct portal.`,
+            variant: "destructive",
+          });
+          setAuthError(`This account is registered as a ${profile.user_type}, not a ${role}. Please use the correct portal.`);
+          setLoading(false);
+          return;
+        }
+      } catch (err) {
+        console.error("Error validating user type:", err);
+        // If we can't validate, sign out to be safe
         await supabase.auth.signOut();
         toast({
-          title: "Invalid Credentials",
-          description: `These credentials are not valid for ${role} portal`,
+          title: "Authentication Error",
+          description: "There was an error validating your account. Please try again.",
           variant: "destructive",
         });
         setLoading(false);
@@ -297,6 +334,7 @@ export default function AuthPage() {
     }
     
     setLoading(false);
+    // If successful, useEffect will handle redirect
   };
 
   const handleOTPVerificationComplete = () => {
@@ -360,6 +398,11 @@ export default function AuthPage() {
               : `🙏 Welcome to your ${role} portal`
             }
           </CardDescription>
+          {authError && (
+            <div className="bg-red-50 text-red-700 p-3 rounded-md border border-red-200 text-sm">
+              {authError}
+            </div>
+          )}
         </CardHeader>
         <CardContent>
           {role === "admin" ? (

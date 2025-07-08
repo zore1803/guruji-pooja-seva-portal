@@ -6,6 +6,7 @@ import type { User, Session } from "@supabase/supabase-js";
 export function useSession() {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
+  const [userType, setUserType] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -14,6 +15,22 @@ export function useSession() {
       const { data: { session } } = await supabase.auth.getSession();
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Get user profile type if user exists
+      if (session?.user) {
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("user_type")
+            .eq("id", session.user.id)
+            .single();
+            
+          setUserType(profile?.user_type || null);
+        } catch (error) {
+          console.error("Error fetching user type:", error);
+        }
+      }
+      
       setLoading(false);
     };
 
@@ -23,11 +40,32 @@ export function useSession() {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      
+      // Get updated user profile type on auth change
+      if (session?.user) {
+        // Use setTimeout to prevent recursive auth calls
+        setTimeout(async () => {
+          try {
+            const { data: profile } = await supabase
+              .from("profiles")
+              .select("user_type")
+              .eq("id", session.user.id)
+              .single();
+              
+            setUserType(profile?.user_type || null);
+          } catch (error) {
+            console.error("Error fetching user type on auth change:", error);
+          }
+        }, 0);
+      } else {
+        setUserType(null);
+      }
+      
       setLoading(false);
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  return { session, user, loading };
+  return { session, user, userType, loading };
 }
