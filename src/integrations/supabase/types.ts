@@ -174,6 +174,7 @@ export type Database = {
           name: string
           profile_image_url: string | null
           user_type: Database["public"]["Enums"]["user_type"]
+          work_locations: string[] | null
         }
         Insert: {
           aadhar_number?: string | null
@@ -186,6 +187,7 @@ export type Database = {
           name: string
           profile_image_url?: string | null
           user_type: Database["public"]["Enums"]["user_type"]
+          work_locations?: string[] | null
         }
         Update: {
           aadhar_number?: string | null
@@ -198,6 +200,7 @@ export type Database = {
           name?: string
           profile_image_url?: string | null
           user_type?: Database["public"]["Enums"]["user_type"]
+          work_locations?: string[] | null
         }
         Relationships: []
       }
