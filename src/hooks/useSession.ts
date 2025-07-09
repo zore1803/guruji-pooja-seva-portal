@@ -23,11 +23,12 @@ export function useSession() {
             .from("profiles")
             .select("user_type")
             .eq("id", session.user.id)
-            .single();
+            .maybeSingle();
             
           setUserType(profile?.user_type || null);
         } catch (error) {
           console.error("Error fetching user type:", error);
+          setUserType(null);
         }
       }
       
@@ -50,11 +51,12 @@ export function useSession() {
               .from("profiles")
               .select("user_type")
               .eq("id", session.user.id)
-              .single();
+              .maybeSingle();
               
             setUserType(profile?.user_type || null);
           } catch (error) {
             console.error("Error fetching user type on auth change:", error);
+            setUserType(null);
           }
         }, 0);
       } else {
