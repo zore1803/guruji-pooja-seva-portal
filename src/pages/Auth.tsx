@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,13 +5,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useSession } from "@/hooks/useSession";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import OTPVerification from "@/components/OTPVerification";
-import { Camera, Upload, X } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { INDIAN_STATES, STATE_CITIES } from "@/data/states";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -36,11 +33,6 @@ export default function AuthPage() {
     state: "",
     work_locations: [] as string[],
   });
-
-  // Photo upload states
-  const [profileImage, setProfileImage] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [uploading, setUploading] = useState(false);
 
   const role = searchParams.get("role") || "customer";
 
@@ -120,84 +112,8 @@ export default function AuthPage() {
     });
     setShowOTPVerification(false);
     setPendingEmail("");
-    setProfileImage(null);
-    setPreviewUrl(null);
     setAuthError("");
   }, [role]);
-
-  const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Validate file type
-      if (!file.type.startsWith('image/')) {
-        toast({
-          title: "Error",
-          description: "Please select an image file",
-          variant: "destructive",
-        });
-        return;
-      }
-      
-      // Validate file size (5MB limit)
-      if (file.size > 5 * 1024 * 1024) {
-        toast({
-          title: "Error",
-          description: "Image size should be less than 5MB",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setProfileImage(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewUrl(e.target?.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const removeImage = () => {
-    setProfileImage(null);
-    setPreviewUrl(null);
-  };
-
-  const uploadProfileImage = async (userId: string): Promise<string | null> => {
-    if (!profileImage) return null;
-
-    setUploading(true);
-    try {
-      const fileExt = profileImage.name.split('.').pop();
-      const fileName = `${userId}-${Date.now()}.${fileExt}`;
-      const filePath = `profiles/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('avatars')
-        .upload(filePath, profileImage, {
-          cacheControl: '3600',
-          upsert: false
-        });
-
-      if (uploadError) {
-        console.error('Upload error:', uploadError);
-        return null;
-      }
-
-      // Get public URL
-      const { data: { publicUrl } } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath);
-
-      return publicUrl;
-    } catch (error) {
-      console.error('Error uploading image:', error);
-      return null;
-    } finally {
-      setUploading(false);
-    }
-  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -236,23 +152,6 @@ export default function AuthPage() {
       setAuthError(error.message);
       setLoading(false);
       return;
-    }
-
-    // If user is created and we have a profile image, upload it
-    if (authData.user && profileImage) {
-      const profileImageUrl = await uploadProfileImage(authData.user.id);
-      
-      if (profileImageUrl) {
-        // Update the user's profile with the image URL
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ profile_image_url: profileImageUrl })
-          .eq('id', authData.user.id);
-
-        if (profileError) {
-          console.error('Profile image update error:', profileError);
-        }
-      }
     }
 
     setPendingEmail(formData.email);
@@ -295,7 +194,7 @@ export default function AuthPage() {
       return;
     }
 
-    // Simple role validation - just check if user exists in correct context
+    // Validate user type matches the portal
     if (data.user) {
       try {
         const { data: profile, error: profileError } = await supabase
@@ -318,12 +217,10 @@ export default function AuthPage() {
         }
       } catch (err) {
         console.error("Error validating user type:", err);
-        // Continue with login if validation fails
       }
     }
     
     setLoading(false);
-    // If successful, useEffect will handle redirect
   };
 
   const handleGoogleSignIn = async () => {
@@ -422,7 +319,7 @@ export default function AuthPage() {
         </CardHeader>
         <CardContent>
           {role === "admin" ? (
-            // Admin login form - no credential hints
+            // Admin login form
             <form onSubmit={handleSignIn} className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
@@ -542,8 +439,8 @@ export default function AuthPage() {
                 </form>
               </TabsContent>
               <TabsContent value="signup">
-                 <form onSubmit={handleSignUp} className="space-y-4">
-                   <div className="space-y-2">
+                <form onSubmit={handleSignUp} className="space-y-4">
+                  <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
                     <Input
                       id="name"
@@ -553,168 +450,163 @@ export default function AuthPage() {
                       required
                     />
                   </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="email">Email</Label>
-                     <Input
-                       id="email"
-                       type="email"
-                       value={formData.email}
-                       onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                       required
-                     />
-                   </div>
-                   <div className="space-y-2">
-                     <Label htmlFor="password">Password</Label>
-                     <Input
-                       id="password"
-                       type="password"
-                       value={formData.password}
-                       onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                       required
-                     />
-                   </div>
-                   
-                   <div className="space-y-2">
-                     <Label htmlFor="state">State</Label>
-                     <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
-                       <SelectTrigger>
-                         <SelectValue placeholder="Select your state" />
-                       </SelectTrigger>
-                       <SelectContent>
-                         {INDIAN_STATES.map((state) => (
-                           <SelectItem key={state} value={state}>
-                             {state}
-                           </SelectItem>
-                         ))}
-                       </SelectContent>
-                     </Select>
-                   </div>
-                  
-                  {role === "pandit" && (
-                    <>
-                      <div className="space-y-2">
-                        <Label htmlFor="expertise">Expertise/Specialization</Label>
-                        <Input
-                          id="expertise"
-                          type="text"
-                          value={formData.expertise}
-                          onChange={(e) => setFormData({ ...formData, expertise: e.target.value })}
-                          placeholder="e.g., Vedic Rituals, Marriage Ceremonies"
-                          required
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="address">Address</Label>
-                        <Input
-                          id="address"
-                          type="text"
-                          value={formData.address}
-                          onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-                          placeholder="Complete address"
-                          required
-                        />
-                      </div>
-                       <div className="space-y-2">
-                         <Label htmlFor="aadhar_number">Aadhar Number</Label>
-                         <Input
-                           id="aadhar_number"
-                           type="text"
-                           value={formData.aadhar_number}
-                           onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
-                           placeholder="12-digit Aadhar number"
-                           maxLength={12}
-                           required
-                         />
-                       </div>
-                       
-                       {formData.state && (
-                         <div className="space-y-2">
-                           <Label>Available Work Locations (Select 3-4 cities)</Label>
-                           <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded p-2">
-                             {STATE_CITIES[formData.state]?.map((city) => (
-                               <div key={city} className="flex items-center space-x-2">
-                                 <Checkbox
-                                   id={city}
-                                   checked={formData.work_locations.includes(city)}
-                                   onCheckedChange={(checked) => {
-                                     if (checked) {
-                                       if (formData.work_locations.length < 4) {
-                                         setFormData({
-                                           ...formData,
-                                           work_locations: [...formData.work_locations, city]
-                                         });
-                                       }
-                                     } else {
-                                       setFormData({
-                                         ...formData,
-                                         work_locations: formData.work_locations.filter(loc => loc !== city)
-                                       });
-                                     }
-                                   }}
-                                   disabled={!formData.work_locations.includes(city) && formData.work_locations.length >= 4}
-                                 />
-                                 <Label htmlFor={city} className="text-sm">{city}</Label>
-                               </div>
-                             ))}
-                           </div>
-                           <p className="text-xs text-gray-500">
-                             Selected: {formData.work_locations.length}/4 cities
-                           </p>
-                         </div>
-                       )}
-                    </>
-                  )}
-                  
-                  <Button 
-                    type="submit" 
-                    className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
-                    disabled={loading || uploading}
-                  >
-                    {loading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Creating account...
-                      </div>
-                    ) : uploading ? (
-                      <div className="flex items-center gap-2">
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                        Uploading photo...
-                      </div>
-                    ) : (
-                      "🚀 Create Account"
-                    )}
-                  </Button>
-                  
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <span className="w-full border-t" />
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
-                    </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={formData.email}
+                      onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                      required
+                    />
                   </div>
                   
-                  <Button 
-                    type="button"
-                    variant="outline"
-                    onClick={handleGoogleSignIn}
-                    className="w-full"
-                    disabled={loading}
-                  >
-                    <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
-                      <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
-                      <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
-                      <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
-                      <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
-                    </svg>
-                    Sign up with Google
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          )}
-        </CardContent>
-      </Card>
-    </div>
-  );
+                  <div className="space-y-2">
+                    <Label htmlFor="state">State</Label>
+                    <Select value={formData.state} onValueChange={(value) => setFormData({ ...formData, state: value })}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your state" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {INDIAN_STATES.map((state) => (
+                          <SelectItem key={state} value={state}>
+                            {state}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                 
+                 {role === "pandit" && (
+                   <>
+                     <div className="space-y-2">
+                       <Label htmlFor="expertise">Expertise/Specialization</Label>
+                       <Input
+                         id="expertise"
+                         type="text"
+                         value={formData.expertise}
+                         onChange={(e) => setFormData({ ...formData, expertise: e.target.value })}
+                         placeholder="e.g., Vedic Rituals, Marriage Ceremonies"
+                         required
+                       />
+                     </div>
+                     <div className="space-y-2">
+                       <Label htmlFor="address">Address</Label>
+                       <Input
+                         id="address"
+                         type="text"
+                         value={formData.address}
+                         onChange={(e) => setFormData({ ...formData, address: e.target.value })}
+                         placeholder="Complete address"
+                         required
+                       />
+                     </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="aadhar_number">Aadhar Number</Label>
+                        <Input
+                          id="aadhar_number"
+                          type="text"
+                          value={formData.aadhar_number}
+                          onChange={(e) => setFormData({ ...formData, aadhar_number: e.target.value })}
+                          placeholder="12-digit Aadhar number"
+                          maxLength={12}
+                          required
+                        />
+                      </div>
+                      
+                      {formData.state && (
+                        <div className="space-y-2">
+                          <Label>Available Work Locations (Select 3-4 cities)</Label>
+                          <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded p-2">
+                            {STATE_CITIES[formData.state]?.map((city) => (
+                              <div key={city} className="flex items-center space-x-2">
+                                <Checkbox
+                                  id={city}
+                                  checked={formData.work_locations.includes(city)}
+                                  onCheckedChange={(checked) => {
+                                    if (checked) {
+                                      if (formData.work_locations.length < 4) {
+                                        setFormData({
+                                          ...formData,
+                                          work_locations: [...formData.work_locations, city]
+                                        });
+                                      }
+                                    } else {
+                                      setFormData({
+                                        ...formData,
+                                        work_locations: formData.work_locations.filter(loc => loc !== city)
+                                      });
+                                    }
+                                  }}
+                                  disabled={!formData.work_locations.includes(city) && formData.work_locations.length >= 4}
+                                />
+                                <Label htmlFor={city} className="text-sm">{city}</Label>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="text-xs text-gray-500">
+                            Selected: {formData.work_locations.length}/4 cities
+                          </p>
+                        </div>
+                      )}
+                   </>
+                 )}
+                 
+                 <Button 
+                   type="submit" 
+                   className="w-full bg-gradient-to-r from-orange-600 to-amber-600 hover:from-orange-700 hover:to-amber-700 text-white font-semibold py-3 rounded-lg shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-200" 
+                   disabled={loading}
+                 >
+                   {loading ? (
+                     <div className="flex items-center gap-2">
+                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                       Creating account...
+                     </div>
+                   ) : (
+                     "🚀 Create Account"
+                   )}
+                 </Button>
+                 
+                 <div className="relative">
+                   <div className="absolute inset-0 flex items-center">
+                     <span className="w-full border-t" />
+                   </div>
+                   <div className="relative flex justify-center text-xs uppercase">
+                     <span className="bg-white px-2 text-muted-foreground">Or continue with</span>
+                   </div>
+                 </div>
+                 
+                 <Button 
+                   type="button"
+                   variant="outline"
+                   onClick={handleGoogleSignIn}
+                   className="w-full"
+                   disabled={loading}
+                 >
+                   <svg className="w-4 h-4 mr-2" viewBox="0 0 24 24">
+                     <path fill="currentColor" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                     <path fill="currentColor" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                     <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
+                     <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                   </svg>
+                   Sign up with Google
+                 </Button>
+               </form>
+             </TabsContent>
+           </Tabs>
+         )}
+       </CardContent>
+     </Card>
+   </div>
+ );
 }

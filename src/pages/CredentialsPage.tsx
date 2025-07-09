@@ -45,9 +45,6 @@ export default function CredentialsPage() {
       return;
     }
 
-    // Keep service ID as string - it might be a UUID in the services table
-    const serviceId = id;
-
     if (!data.fromDate || !data.toDate) {
       toast({
         title: "Date Required",
@@ -61,7 +58,7 @@ export default function CredentialsPage() {
 
     try {
       // Convert service ID to integer for database lookup
-      const serviceIdAsNumber = parseInt(serviceId, 10);
+      const serviceIdAsNumber = parseInt(id, 10);
       if (isNaN(serviceIdAsNumber)) {
         throw new Error("Invalid service ID");
       }
@@ -78,8 +75,7 @@ export default function CredentialsPage() {
         throw new Error("Service not found");
       }
 
-      // Create booking directly without using another query to fetch profile first
-      // This avoids potential recursive RLS policy issues
+      // Create booking with customer details from profile
       const { data: booking, error: bookingError } = await supabase
         .from("bookings")
         .insert({
@@ -88,7 +84,10 @@ export default function CredentialsPage() {
           created_by: user.id,
           address: data.address,
           location: `${data.city}, ${data.state}`,
-          status: "pending"
+          status: "pending",
+          customer_name: profile?.name || user.email?.split('@')[0] || 'User',
+          customer_email: user.email || '',
+          customer_phone: profile?.phone || ''
         })
         .select()
         .single();

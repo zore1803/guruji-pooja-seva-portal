@@ -1,3 +1,4 @@
+
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,6 +9,7 @@ import { Edit } from "lucide-react";
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardStats from "@/components/DashboardStats";
 import BookingsTable from "@/components/BookingsTable";
+import { useCustomerProfile } from "@/hooks/useCustomerProfile";
 
 import { Booking } from "@/components/BookingsTable";
 
@@ -28,7 +30,7 @@ type LocalStorageBooking = {
 export default function DashboardCustomer() {
   const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const { profile, loading: loadingProfile } = useCustomerProfile();
   const [openEditModal, setOpenEditModal] = useState(false);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [localBookings, setLocalBookings] = useState<LocalStorageBooking[]>([]);
@@ -48,54 +50,13 @@ export default function DashboardCustomer() {
     setInitialLoad(false);
   }, [user, sessionLoading, navigate]);
 
-  // Load profile when user is confirmed
-  useEffect(() => {
-    if (sessionLoading || !user || initialLoad) return;
-
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (data) {
-          setProfile(data);
-        } else if (!error || error.code === 'PGRST116') {
-          const { data: newProfile } = await supabase
-            .from("profiles")
-            .insert([{
-              id: user.id,
-              name: user.user_metadata?.name || user.email?.split('@')[0] || 'User',
-              email: user.email || '',
-              user_type: 'customer',
-              is_verified: false
-            }])
-            .select()
-            .single();
-
-          if (newProfile) {
-            setProfile(newProfile);
-          }
-        }
-      } catch (error) {
-        console.error('Profile load error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [user, sessionLoading, initialLoad]);
-
-  // Load bookings when user and profile are ready
+  // Load bookings when user is confirmed
   useEffect(() => {
     if (sessionLoading || !user || initialLoad) return;
     
     const loadBookings = async () => {
       try {
+        setLoading(true);
         const { data } = await supabase
           .from("bookings")
           .select("*, services:service_id (*), assigned_pandit:pandit_id (*)")
@@ -119,6 +80,8 @@ export default function DashboardCustomer() {
         }
       } catch (error) {
         console.error('Booking load error:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -142,7 +105,7 @@ export default function DashboardCustomer() {
   }, [user, sessionLoading, initialLoad]);
 
   const handleProfileUpdated = (updated: any) => {
-    setProfile(updated);
+    // Profile will be updated automatically by the hook
   };
 
   const handleLogout = async () => {
@@ -155,7 +118,7 @@ export default function DashboardCustomer() {
     }
   };
 
-  if (sessionLoading || initialLoad || loading) {
+  if (sessionLoading || initialLoad || loading || loadingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-orange-50 to-orange-100 flex items-center justify-center">
         <div className="text-center">

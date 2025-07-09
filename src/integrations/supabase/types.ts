@@ -44,6 +44,9 @@ export type Database = {
           confirmed_date: string | null
           created_at: string
           created_by: string
+          customer_email: string | null
+          customer_name: string | null
+          customer_phone: string | null
           id: string
           invoice_url: string | null
           location: string | null
@@ -61,6 +64,9 @@ export type Database = {
           confirmed_date?: string | null
           created_at?: string
           created_by?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           invoice_url?: string | null
           location?: string | null
@@ -78,6 +84,9 @@ export type Database = {
           confirmed_date?: string | null
           created_at?: string
           created_by?: string
+          customer_email?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
           id?: string
           invoice_url?: string | null
           location?: string | null
@@ -96,6 +105,48 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      customer_profiles: {
+        Row: {
+          address: string | null
+          city: string | null
+          created_at: string
+          email: string
+          id: string
+          is_verified: boolean | null
+          name: string
+          phone: string | null
+          profile_image_url: string | null
+          state: string | null
+          updated_at: string
+        }
+        Insert: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email: string
+          id: string
+          is_verified?: boolean | null
+          name: string
+          phone?: string | null
+          profile_image_url?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Update: {
+          address?: string | null
+          city?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          is_verified?: boolean | null
+          name?: string
+          phone?: string | null
+          profile_image_url?: string | null
+          state?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       feedback: {
         Row: {
@@ -118,6 +169,54 @@ export type Database = {
           id?: number
           message?: string
           name?: string
+        }
+        Relationships: []
+      }
+      pandit_profiles: {
+        Row: {
+          aadhar_number: string | null
+          address: string | null
+          created_at: string
+          email: string
+          expertise: string | null
+          id: string
+          is_verified: boolean | null
+          name: string
+          phone: string | null
+          profile_image_url: string | null
+          state: string | null
+          updated_at: string
+          work_locations: string[] | null
+        }
+        Insert: {
+          aadhar_number?: string | null
+          address?: string | null
+          created_at?: string
+          email: string
+          expertise?: string | null
+          id: string
+          is_verified?: boolean | null
+          name: string
+          phone?: string | null
+          profile_image_url?: string | null
+          state?: string | null
+          updated_at?: string
+          work_locations?: string[] | null
+        }
+        Update: {
+          aadhar_number?: string | null
+          address?: string | null
+          created_at?: string
+          email?: string
+          expertise?: string | null
+          id?: string
+          is_verified?: boolean | null
+          name?: string
+          phone?: string | null
+          profile_image_url?: string | null
+          state?: string | null
+          updated_at?: string
+          work_locations?: string[] | null
         }
         Relationships: []
       }

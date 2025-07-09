@@ -1,3 +1,4 @@
+
 import { useSession } from "@/hooks/useSession";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,11 +11,12 @@ import { toast } from "@/hooks/use-toast";
 import DashboardHeader from "@/components/DashboardHeader";
 import DashboardStats from "@/components/DashboardStats";
 import BookingsTable from "@/components/BookingsTable";
+import { usePanditProfile } from "@/hooks/usePanditProfile";
 
 export default function DashboardPandit() {
   const { user, loading: sessionLoading } = useSession();
   const navigate = useNavigate();
-  const [profile, setProfile] = useState<any>(null);
+  const { profile, loading: loadingProfile } = usePanditProfile();
   const [openEditModal, setOpenEditModal] = useState(false);
   const [assignedBookings, setAssignedBookings] = useState<any[]>([]);
   const [localBookings, setLocalBookings] = useState<any[]>([]);
@@ -34,48 +36,16 @@ export default function DashboardPandit() {
     setInitialLoad(false);
   }, [user, sessionLoading, navigate]);
 
-  // Load profile when user is confirmed
+  // Load bookings when user and profile are ready
   useEffect(() => {
-    if (sessionLoading || !user || initialLoad) return;
-
-    const loadProfile = async () => {
-      try {
-        setLoading(true);
-        const { data, error } = await supabase
-          .from("profiles")
-          .select("*")
-          .eq("id", user.id)
-          .single();
-
-        if (data) {
-          setProfile(data);
-        } else {
-          console.error('Profile not found:', error);
-        }
-      } catch (error) {
-        console.error('Profile load error:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadProfile();
-  }, [user, sessionLoading, initialLoad]);
-
-  // Load bookings when user is confirmed
-  useEffect(() => {
-    if (sessionLoading || !user || initialLoad) return;
+    if (sessionLoading || !user || initialLoad || loadingProfile) return;
     
     const fetchPendingBookings = async () => {
       try {
+        setLoading(true);
+        
         // Get pandit's work locations from profile
-        const { data: panditProfile } = await supabase
-          .from("profiles")
-          .select("work_locations")
-          .eq("id", user.id)
-          .single();
-
-        const workLocations = panditProfile?.work_locations || [];
+        const workLocations = profile?.work_locations || [];
 
         // Fetch pending bookings that match pandit's work locations
         const { data, error } = await supabase
@@ -111,6 +81,8 @@ export default function DashboardPandit() {
         }
       } catch (error) {
         console.error('Error loading pending bookings:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -145,13 +117,15 @@ export default function DashboardPandit() {
       }
     };
 
-    fetchPendingBookings();
-    fetchAssignedBookings();
-    
-    // Set up interval to check for new bookings
-    const interval = setInterval(fetchPendingBookings, 30000); // Check every 30 seconds
-    return () => clearInterval(interval);
-  }, [user, sessionLoading, initialLoad]);
+    if (profile) {
+      fetchPendingBookings();
+      fetchAssignedBookings();
+      
+      // Set up interval to check for new bookings
+      const interval = setInterval(fetchPendingBookings, 30000); // Check every 30 seconds
+      return () => clearInterval(interval);
+    }
+  }, [user, sessionLoading, initialLoad, profile, loadingProfile]);
 
   const handleAcceptBooking = async (bookingId: string) => {
     try {
@@ -251,7 +225,7 @@ export default function DashboardPandit() {
   };
 
   const handleProfileUpdated = (updated: any) => {
-    setProfile(updated);
+    // Profile will be updated automatically by the hook
   };
 
   const handleLogout = async () => {
@@ -264,7 +238,7 @@ export default function DashboardPandit() {
     }
   };
 
-  if (sessionLoading || initialLoad || loading) {
+  if (sessionLoading || initialLoad || loading || loadingProfile) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
         <div className="text-center">
